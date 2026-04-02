@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grading Arbitrage Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a25;
+    --border: #2a2a3a;
+    --text: #e8e8f0;
+    --text-dim: #8888a0;
+    --accent: #00e5a0;
+    --accent-dim: #00e5a033;
+    --red: #ff4466;
+    --red-dim: #ff446633;
+    --yellow: #ffcc00;
+    --yellow-dim: #ffcc0033;
+    --blue: #4488ff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    font-size: 13px;
+  }
+
+  .header {
+    padding: 24px 24px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .header .subtitle {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .controls {
+    padding: 16px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .control-group label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    font-family: 'Syne', sans-serif;
+  }
+
+  input, select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    border-radius: 4px;
+    outline: none;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--accent);
+  }
+
+  select { cursor: pointer; min-width: 200px; }
+  input[type="password"] { min-width: 280px; }
+
+  .btn {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: none;
+    padding: 9px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .btn-primary:hover { opacity: 0.85; }
+
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover { border-color: var(--accent); }
+
+  .status-bar {
+    padding: 10px 24px;
+    font-size: 11px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .progress-bar {
+    height: 3px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+    width: 200px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.3s;
+    width: 0%;
+  }
+
+  .results {
+    padding: 16px 24px;
+  }
+
+  .card-grid {
+    display: grid;
+    gap: 2px;
+  }
+
+  .card-row {
+    display: grid;
+    grid-template-columns: 32px 60px 1fr 90px 100px 100px 90px 80px 80px;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--surface);
+    border-left: 3px solid transparent;
+    transition: background 0.1s;
+    gap: 8px;
+  }
+
+  .card-row:hover { background: var(--surface2); }
+  .card-row.tier-s { border-left-color: var(--accent); }
+  .card-row.tier-a { border-left-color: var(--blue); }
+  .card-row.tier-b { border-left-color: var(--yellow); }
+  .card-row.tier-c { border-left-color: var(--text-dim); }
+  .card-row.tier-avoid { border-left-color: var(--red); }
+
+  .card-row-header {
+    display: grid;
+    grid-template-columns: 32px 60px 1fr 90px 100px 100px 90px 80px 80px;
+    padding: 8px 12px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .rank {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    color: var(--text-dim);
+  }
+
+  .card-img {
+    width: 48px;
+    height: 67px;
+    border-radius: 3px;
+    object-fit: cover;
+    background: var(--surface2);
+  }
+
+  .card-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1.2;
+  }
+
+  .card-meta {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .rarity-ir { color: var(--yellow); }
+  .rarity-sir { color: var(--accent); }
+
+  .price { font-weight: 700; }
+  .spread-positive { color: var(--accent); font-weight: 700; }
+  .spread-negative { color: var(--red); font-weight: 700; }
+  .spread-neutral { color: var(--yellow); font-weight: 700; }
+
+  .trend-rising { color: var(--accent); }
+  .trend-falling { color: var(--red); }
+  .trend-stable { color: var(--text-dim); }
+
+  .confidence-high { color: var(--accent); }
+  .confidence-medium { color: var(--yellow); }
+  .confidence-low { color: var(--red); }
+
+  .tag {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    display: inline-block;
+  }
+
+  .tag-sir { background: var(--accent-dim); color: var(--accent); }
+  .tag-ir { background: var(--yellow-dim); color: var(--yellow); }
+
+  .summary-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-card {
+    background: var(--surface);
+    padding: 14px 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .summary-card .label {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .summary-card .value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1px;
+  }
+
+  .summary-card .detail {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .footer-notes {
+    padding: 20px 24px;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+
+  .footer-notes h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .footer-section {
+    background: var(--surface);
+    padding: 14px 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .footer-section h4 {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .footer-section p, .footer-section li {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .footer-section ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .footer-section ul li::before {
+    content: ">";
+    color: var(--accent);
+    margin-right: 6px;
+    font-weight: 700;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 80px 24px;
+    color: var(--text-dim);
+  }
+
+  .empty-state h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error { color: var(--red); }
+
+  @media (max-width: 900px) {
+    .card-row, .card-row-header {
+      grid-template-columns: 28px 1fr 70px 80px 70px;
+    }
+    .card-row .card-img-cell,
+    .card-row-header .col-img,
+    .card-row .col-trend,
+    .card-row-header .col-trend-h,
+    .card-row .col-confidence,
+    .card-row-header .col-confidence-h,
+    .card-row .col-sales,
+    .card-row-header .col-sales-h { display: none; }
+  }
+
+  @media (max-width: 600px) {
+    .header h1 { font-size: 24px; }
+    .controls { flex-direction: column; }
+    select, input[type="password"] { min-width: 100%; }
+    .card-row, .card-row-header {
+      grid-template-columns: 28px 1fr 65px 60px;
+      font-size: 11px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Grading Arbitrage Scanner</h1>
+  <div class="subtitle">Raw NM vs CGC 10 // Spread Analysis</div>
+</div>
+
+<div class="controls">
+  <input type="hidden" id="apiKey" value="pokeprice_pro_c28e85445726c75a2e218f1ea07cc8889faa25391d468eb0">
+  <div class="control-group">
+    <label>Set</label>
+    <select id="setSelect">
+      <option value="">Select a set</option>
+    </select>
+  </div>
+  <button class="btn btn-primary" id="scanBtn" onclick="scanSelected()">Scan Set</button>
+  <button class="btn btn-secondary" id="scanAllBtn" onclick="scanAll()">Scan All</button>
+</div>
+
+<div class="status-bar" id="statusBar" style="display:none;">
+  <span id="statusText"><span class="spinner"></span> Scanning...</span>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<div id="summaryArea"></div>
+<div id="resultsArea">
+  <div class="empty-state">
+    <h2>Select a Set and Scan</h2>
+    <p>Scanner will compare raw NM market price vs CGC 10 average sold price</p>
+    <p style="margin-top:8px; font-size:11px;">API key loaded. Select a set or hit Scan All.</p>
+  </div>
+</div>
+<div id="footerArea"></div>
+
+<script>
+const API_BASE = 'https://www.pokemonpricetracker.com/api/v2';
+
+// Pre-loaded card lists: card number => { name, rarity }
+const SETS = {
+  "Scarlet & Violet 151": {
+    searchName: "151",
+    cards: {
+      "166/165": { name: "Bulbasaur", rarity: "IR" },
+      "167/165": { name: "Ivysaur", rarity: "IR" },
+      "168/165": { name: "Charmander", rarity: "IR" },
+      "169/165": { name: "Charmeleon", rarity: "IR" },
+      "170/165": { name: "Squirtle", rarity: "IR" },
+      "171/165": { name: "Wartortle", rarity: "IR" },
+      "172/165": { name: "Caterpie", rarity: "IR" },
+      "173/165": { name: "Pikachu", rarity: "IR" },
+      "174/165": { name: "Nidoking", rarity: "IR" },
+      "175/165": { name: "Psyduck", rarity: "IR" },
+      "176/165": { name: "Poliwhirl", rarity: "IR" },
+      "177/165": { name: "Machoke", rarity: "IR" },
+      "178/165": { name: "Tangela", rarity: "IR" },
+      "179/165": { name: "Mr. Mime", rarity: "IR" },
+      "180/165": { name: "Omanyte", rarity: "IR" },
+      "181/165": { name: "Dragonair", rarity: "IR" },
+      "198/165": { name: "Venusaur ex", rarity: "SIR" },
+      "199/165": { name: "Charizard ex", rarity: "SIR" },
+      "200/165": { name: "Blastoise ex", rarity: "SIR" },
+      "201/165": { name: "Alakazam ex", rarity: "SIR" },
+      "202/165": { name: "Zapdos ex", rarity: "SIR" }
+    }
+  }
+};
+
+// Populate set dropdown
+const setSelect = document.getElementById('setSelect');
+Object.keys(SETS).forEach(name => {
+  const opt = document.createElement('option');
+  opt.value = name;
+  opt.textContent = name;
+  setSelect.appendChild(opt);
+});
+
+function getApiKey() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) { alert('Enter your API key'); return null; }
+  return key;
+}
+
+async function apiCall(endpoint, params, apiKey) {
+  const url = new URL(API_BASE + endpoint);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  const resp = await fetch(url, {
+    headers: { 'Authorization': 'Bearer ' + apiKey }
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.message || `API error ${resp.status}`);
+  }
+  return resp.json();
+}
+
+function showStatus(text, progress) {
+  const bar = document.getElementById('statusBar');
+  bar.style.display = 'flex';
+  document.getElementById('statusText').innerHTML = `<span class="spinner"></span> ${text}`;
+  if (progress !== undefined) {
+    document.getElementById('progressFill').style.width = progress + '%';
+  }
+}
+
+function hideStatus() {
+  document.getElementById('statusBar').style.display = 'none';
+}
+
+function showError(msg) {
+  const bar = document.getElementById('statusBar');
+  bar.style.display = 'flex';
+  document.getElementById('statusText').innerHTML = `<span class="error">${msg}</span>`;
+}
+
+async function scanSet(setName, apiKey) {
+  const setData = SETS[setName];
+  const cardEntries = Object.entries(setData.cards);
+  const results = [];
+  const batchSize = 5;
+
+  for (let i = 0; i < cardEntries.length; i += batchSize) {
+    const batch = cardEntries.slice(i, i + batchSize);
+    showStatus(
+      `${setName}: Scanning cards ${i+1}-${Math.min(i+batchSize, cardEntries.length)} of ${cardEntries.length}`,
+      Math.round((i / cardEntries.length) * 100)
+    );
+
+    const promises = batch.map(async ([cardNum, info]) => {
+      try {
+        const data = await apiCall('/cards', {
+          search: `${info.name} ${cardNum.split('/')[0]}`,
+          set: setData.searchName,
+          includeEbay: 'true',
+          days: '90',
+          limit: '5'
+        }, apiKey);
+
+        let card = null;
+        if (data.data) {
+          if (Array.isArray(data.data)) {
+            card = data.data.find(c => c.cardNumber === cardNum.split('/')[0] || c.cardNumber === cardNum);
+            if (!card && data.data.length > 0) card = data.data[0];
+          } else {
+            card = data.data;
+          }
+        }
+
+        if (!card) return null;
+
+        // Capture first card's raw response for debugging
+        if (!window._debugSample) {
+          window._debugSample = {
+            cardName: info.name,
+            cardNumber: cardNum,
+            pricesObj: card.prices,
+            ebayObj: card.ebay,
+            topLevelKeys: Object.keys(card),
+            ebayKeys: card.ebay ? Object.keys(card.ebay) : [],
+            salesByGradeKeys: card.ebay?.salesByGrade ? Object.keys(card.ebay.salesByGrade) : [],
+            rawCard: card
+          };
+        }
+
+        const rawNM = card.prices?.market
+          || card.prices?.conditions?.['Near Mint']?.price
+          || card.prices?.low
+          || null;
+        let cgc10 = null;
+        let cgc10Data = null;
+
+        if (card.ebay?.salesByGrade) {
+          const grades = card.ebay.salesByGrade;
+          // Try various key formats for CGC 10
+          const cgcKey = Object.keys(grades).find(k => {
+            const lk = k.toLowerCase().replace(/[\s_-]/g, '');
+            return lk === 'cgc10' || lk === 'cgcperfect10' || lk === 'cgcpristine10' || lk === 'cgcgemmint10';
+          });
+          if (cgcKey) {
+            cgc10Data = grades[cgcKey];
+            cgc10 = cgc10Data.smartMarketPrice?.price || cgc10Data.medianPrice || cgc10Data.averagePrice || null;
+          }
+          // Broader fallback: any key containing "cgc" and "10"
+          if (!cgc10) {
+            const fallbackKey = Object.keys(grades).find(k => {
+              const lk = k.toLowerCase();
+              return lk.includes('cgc') && lk.includes('10');
+            });
+            if (fallbackKey) {
+              cgc10Data = grades[fallbackKey];
+              cgc10 = cgc10Data.smartMarketPrice?.price || cgc10Data.medianPrice || cgc10Data.averagePrice || null;
+            }
+          }
+        }
+
+        let spread = null;
+        let spreadPct = null;
+        if (rawNM && cgc10) {
+          spread = cgc10 - rawNM;
+          spreadPct = ((cgc10 - rawNM) / rawNM) * 100;
+        }
+
+        return {
+          name: info.name,
+          cardNumber: cardNum,
+          rarity: info.rarity,
+          setName: setName,
+          rawNM: rawNM,
+          cgc10: cgc10,
+          spread: spread,
+          spreadPct: spreadPct,
+          trend: cgc10Data?.marketTrend || null,
+          salesCount: cgc10Data?.count || 0,
+          confidence: cgc10Data?.smartMarketPrice?.confidence || null,
+          image: card.imageCdnUrl200 || card.imageCdnUrl400 || null,
+          tcgPlayerUrl: card.tcgPlayerUrl || null,
+          ebayGrades: card.ebay?.salesByGrade ? Object.keys(card.ebay.salesByGrade) : [],
+          allGradeData: card.ebay?.salesByGrade || null
+        };
+      } catch (err) {
+        console.error(`Error fetching ${info.name}:`, err);
+        return {
+          name: info.name,
+          cardNumber: cardNum,
+          rarity: info.rarity,
+          setName: setName,
+          rawNM: null, cgc10: null, spread: null, spreadPct: null,
+          error: err.message
+        };
+      }
+    });
+
+    const batchResults = await Promise.all(promises);
+    results.push(...batchResults.filter(r => r !== null));
+
+    // Brief delay between batches to respect rate limits
+    if (i + batchSize < cardEntries.length) {
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
+
+  return results;
+}
+
+async function scanSelected() {
+  const apiKey = getApiKey();
+  if (!apiKey) return;
+  const setName = setSelect.value;
+  if (!setName) { alert('Select a set'); return; }
+
+  document.getElementById('scanBtn').disabled = true;
+  document.getElementById('scanAllBtn').disabled = true;
+
+  try {
+    const results = await scanSet(setName, apiKey);
+    showStatus(`Complete: ${results.length} cards scanned`, 100);
+    setTimeout(hideStatus, 2000);
+    renderResults(results);
+  } catch (err) {
+    showError('Scan failed: ' + err.message);
+  } finally {
+    document.getElementById('scanBtn').disabled = false;
+    document.getElementById('scanAllBtn').disabled = false;
+  }
+}
+
+async function scanAll() {
+  const apiKey = getApiKey();
+  if (!apiKey) return;
+
+  document.getElementById('scanBtn').disabled = true;
+  document.getElementById('scanAllBtn').disabled = true;
+
+  const allResults = [];
+  const setNames = Object.keys(SETS);
+
+  try {
+    for (let s = 0; s < setNames.length; s++) {
+      const results = await scanSet(setNames[s], apiKey);
+      allResults.push(...results);
+    }
+    showStatus(`Complete: ${allResults.length} cards across ${setNames.length} sets`, 100);
+    setTimeout(hideStatus, 2000);
+    renderResults(allResults);
+  } catch (err) {
+    showError('Scan failed: ' + err.message);
+  } finally {
+    document.getElementById('scanBtn').disabled = false;
+    document.getElementById('scanAllBtn').disabled = false;
+  }
+}
+
+function renderResults(results) {
+  // Sort by spread % descending, nulls at bottom
+  results.sort((a, b) => {
+    if (a.spreadPct === null && b.spreadPct === null) return 0;
+    if (a.spreadPct === null) return 1;
+    if (b.spreadPct === null) return -1;
+    return b.spreadPct - a.spreadPct;
+  });
+
+  // Calculate summary stats
+  const withSpread = results.filter(r => r.spreadPct !== null);
+  const avgSpread = withSpread.length ? withSpread.reduce((s,r) => s + r.spreadPct, 0) / withSpread.length : 0;
+  const topOpportunity = withSpread.length ? withSpread[0] : null;
+  const noData = results.filter(r => r.cgc10 === null);
+
+  // Render summary
+  document.getElementById('summaryArea').innerHTML = `
+    <div class="summary-bar">
+      <div class="summary-card">
+        <div class="label">Cards Scanned</div>
+        <div class="value">${results.length}</div>
+        <div class="detail">${withSpread.length} with CGC 10 data</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Avg Spread</div>
+        <div class="value" style="color: ${avgSpread > 0 ? 'var(--accent)' : 'var(--red)'}">
+          ${avgSpread > 0 ? '+' : ''}${avgSpread.toFixed(1)}%
+        </div>
+        <div class="detail">Raw NM to CGC 10</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Top Opportunity</div>
+        <div class="value" style="color: var(--accent)">
+          ${topOpportunity ? topOpportunity.name : 'N/A'}
+        </div>
+        <div class="detail">${topOpportunity ? '+' + topOpportunity.spreadPct.toFixed(1) + '% spread' : 'No data'}</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">No CGC 10 Data</div>
+        <div class="value" style="color: ${noData.length > 0 ? 'var(--yellow)' : 'var(--text-dim)'}">
+          ${noData.length}
+        </div>
+        <div class="detail">${noData.length > 0 ? 'Insufficient sales data' : 'All cards have data'}</div>
+      </div>
+    </div>
+  `;
+
+  // Render table
+  let html = `
+    <div class="results">
+      <div class="card-row-header">
+        <div>#</div>
+        <div class="col-img"></div>
+        <div>Card</div>
+        <div>Raw NM</div>
+        <div>CGC 10</div>
+        <div>Spread</div>
+        <div class="col-trend-h">Trend</div>
+        <div class="col-confidence-h">Conf.</div>
+        <div class="col-sales-h">Sales</div>
+      </div>
+      <div class="card-grid">
+  `;
+
+  results.forEach((r, i) => {
+    const tier = getTier(r.spreadPct);
+    const spreadStr = r.spreadPct !== null
+      ? `${r.spreadPct > 0 ? '+' : ''}${r.spreadPct.toFixed(1)}%`
+      : 'N/A';
+    const spreadClass = r.spreadPct === null ? '' :
+      r.spreadPct >= 50 ? 'spread-positive' :
+      r.spreadPct >= 0 ? 'spread-neutral' : 'spread-negative';
+    const spreadDollar = r.spread !== null ? `$${r.spread.toFixed(0)}` : '';
+
+    html += `
+      <div class="card-row ${tier}">
+        <div class="rank">${i + 1}</div>
+        <div class="card-img-cell">
+          ${r.image ? `<img class="card-img" src="${r.image}" alt="${r.name}" loading="lazy">` : '<div class="card-img"></div>'}
+        </div>
+        <div>
+          <div class="card-name">${r.name}</div>
+          <div class="card-meta">
+            ${r.cardNumber} &middot;
+            <span class="tag ${r.rarity === 'SIR' ? 'tag-sir' : 'tag-ir'}">${r.rarity}</span>
+            ${r.setName !== results[0]?.setName || results.some(x => x.setName !== r.setName) ? ` &middot; ${r.setName}` : ''}
+          </div>
+        </div>
+        <div class="price">${r.rawNM ? '$' + r.rawNM.toFixed(2) : '<span class="error">N/A</span>'}</div>
+        <div class="price">${r.cgc10 ? '$' + r.cgc10.toFixed(2) : '<span style="color:var(--text-dim)">No data</span>'}</div>
+        <div>
+          <span class="${spreadClass}">${spreadStr}</span>
+          ${spreadDollar ? `<br><span style="font-size:10px;color:var(--text-dim)">${spreadDollar}</span>` : ''}
+        </div>
+        <div class="col-trend">
+          ${r.trend ? `<span class="trend-${r.trend}">${r.trend}</span>` : '<span style="color:var(--text-dim)">--</span>'}
+        </div>
+        <div class="col-confidence">
+          ${r.confidence ? `<span class="confidence-${r.confidence}">${r.confidence}</span>` : '<span style="color:var(--text-dim)">--</span>'}
+        </div>
+        <div class="col-sales">
+          ${r.salesCount > 0 ? r.salesCount : '<span style="color:var(--text-dim)">0</span>'}
+        </div>
+      </div>
+    `;
+  });
+
+  html += '</div></div>';
+  document.getElementById('resultsArea').innerHTML = html;
+
+  // Render footer
+  renderFooter(results);
+
+  // Render debug panel
+  if (window._debugSample) {
+    const d = window._debugSample;
+    const debugHtml = `
+      <div class="footer-notes" style="margin-top:4px;">
+        <h3>Debug: Raw API Response (${d.cardName} ${d.cardNumber})</h3>
+        <div class="footer-grid">
+          <div class="footer-section">
+            <h4>Top-Level Card Keys</h4>
+            <p style="word-break:break-all;">${d.topLevelKeys.join(', ')}</p>
+          </div>
+          <div class="footer-section">
+            <h4>Prices Object</h4>
+            <pre style="font-size:10px;color:var(--text-dim);white-space:pre-wrap;word-break:break-all;max-height:200px;overflow:auto;">${JSON.stringify(d.pricesObj, null, 2)}</pre>
+          </div>
+          <div class="footer-section">
+            <h4>eBay Top-Level Keys</h4>
+            <p>${d.ebayKeys.length ? d.ebayKeys.join(', ') : 'NO EBAY DATA RETURNED'}</p>
+            <h4 style="margin-top:8px;">salesByGrade Keys</h4>
+            <p>${d.salesByGradeKeys.length ? d.salesByGradeKeys.join(', ') : 'NO GRADES FOUND'}</p>
+          </div>
+          <div class="footer-section">
+            <h4>Full eBay Object</h4>
+            <pre style="font-size:10px;color:var(--text-dim);white-space:pre-wrap;word-break:break-all;max-height:300px;overflow:auto;">${JSON.stringify(d.ebayObj, null, 2)}</pre>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('footerArea').innerHTML += debugHtml;
+  }
+}
+
+function getTier(spreadPct) {
+  if (spreadPct === null) return 'tier-c';
+  if (spreadPct >= 100) return 'tier-s';
+  if (spreadPct >= 50) return 'tier-a';
+  if (spreadPct >= 20) return 'tier-b';
+  if (spreadPct >= 0) return 'tier-c';
+  return 'tier-avoid';
+}
+
+function renderFooter(results) {
+  const withSpread = results.filter(r => r.spreadPct !== null);
+  const noData = results.filter(r => r.cgc10 === null);
+  const negativeSpreads = withSpread.filter(r => r.spreadPct < 0);
+
+  // Detect available grades from data
+  const allGrades = new Set();
+  results.forEach(r => {
+    if (r.ebayGrades) r.ebayGrades.forEach(g => allGrades.add(g));
+  });
+
+  let concernsHtml = '';
+  if (noData.length > 0) {
+    concernsHtml += `<li>${noData.length} card(s) missing CGC 10 data: ${noData.map(r => r.name).join(', ')}</li>`;
+  }
+  if (negativeSpreads.length > 0) {
+    concernsHtml += `<li>${negativeSpreads.length} card(s) show negative spread (CGC 10 sells below raw NM)</li>`;
+  }
+
+  document.getElementById('footerArea').innerHTML = `
+    <div class="footer-notes">
+      <h3>Scan Analysis</h3>
+      <div class="footer-grid">
+        <div class="footer-section">
+          <h4>Tier Legend</h4>
+          <ul>
+            <li><span style="color:var(--accent)">S Tier</span> = 100%+ spread, strong grading candidate</li>
+            <li><span style="color:var(--blue)">A Tier</span> = 50-99% spread, solid opportunity</li>
+            <li><span style="color:var(--yellow)">B Tier</span> = 20-49% spread, moderate upside</li>
+            <li><span style="color:var(--text-dim)">C Tier</span> = 0-19% spread, marginal</li>
+            <li><span style="color:var(--red)">Avoid</span> = negative spread</li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h4>Data Quality</h4>
+          <ul>
+            ${concernsHtml || '<li>No concerns detected</li>'}
+            <li>CGC 10 prices from eBay sold data (90 day window)</li>
+            <li>Raw NM = TCGPlayer market price</li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h4>Grading Costs Not Included</h4>
+          <ul>
+            <li>CGC standard: ~$20-30/card</li>
+            <li>Shipping to/from grader: ~$10-15</li>
+            <li>eBay selling fees: ~13%</li>
+            <li>Factor these into any buy decision</li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h4>Available Grades in Data</h4>
+          <p>${allGrades.size > 0 ? Array.from(allGrades).sort().join(', ') : 'Grades will populate after scan'}</p>
+          <p style="margin-top:6px;">Currently filtering for CGC 10 only</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+</script>
+
+</body>
+</html>
