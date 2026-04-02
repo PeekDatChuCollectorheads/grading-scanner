@@ -479,14 +479,23 @@ Object.keys(SETS).forEach(name => {
 // API key handled by Cloudflare Worker proxy
 
 async function apiCall(endpoint, params) {
-  const url = new URL(API_BASE + endpoint);
-  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
-  const resp = await fetch(url);
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({}));
-    throw new Error(err.message || `API error ${resp.status}`);
+  const queryStr = Object.entries(params)
+    .map(([k,v]) => k + '=' + encodeURIComponent(v))
+    .join('&');
+  const fullUrl = API_BASE + endpoint + '?' + queryStr;
+  console.log('Fetching:', fullUrl);
+  try {
+    const resp = await fetch(fullUrl);
+    const text = await resp.text();
+    console.log('Raw response status:', resp.status, 'body preview:', text.substring(0, 300));
+    if (!resp.ok) {
+      throw new Error('API error ' + resp.status + ': ' + text.substring(0, 200));
+    }
+    return JSON.parse(text);
+  } catch (err) {
+    console.error('apiCall failed for', fullUrl, err);
+    throw err;
   }
-  return resp.json();
 }
 
 function showStatus(text, progress) {
@@ -523,12 +532,14 @@ async function scanSet(setName) {
 
     const promises = batch.map(async ([cardNum, info]) => {
       try {
+        // Use the exact search format confirmed to work:
+        // search=Bulbasaur 166/165&set=151&includeEbay=true
         const data = await apiCall('/cards', {
-          search: `${info.name} ${cardNum}`,
+          search: info.name + ' ' + cardNum,
           set: setData.searchName,
           includeEbay: 'true',
           days: '90',
-          limit: '10'
+          limit: '5'
         });
 
         // Handle both single object and array responses
@@ -885,6 +896,31 @@ function renderFooter(results) {
     </div>
   `;
 }
+
+// Connection test on load
+(async function() {
+  try {
+    const testUrl = API_BASE + '/cards?search=Bulbasaur%20166/165&set=151&includeEbay=true&limit=1';
+    console.log('Connection test:', testUrl);
+    const resp = await fetch(testUrl);
+    const json = await resp.json();
+    const card = Array.isArray(json.data) ? json.data[0] : json.data;
+    if (card && card.prices) {
+      console.log('CONNECTION TEST PASSED');
+      console.log('Card:', card.name);
+      console.log('Raw NM (prices.market):', card.prices.market);
+      console.log('CGC10 data:', card.ebay?.salesByGrade?.cgc10?.smartMarketPrice?.price);
+      document.getElementById('statusBar').style.display = 'flex';
+      document.getElementById('statusText').innerHTML = 
+        'API connected. Test: ' + card.name + ' = $' + card.prices.market + ' raw / $' + 
+        (card.ebay?.salesByGrade?.cgc10?.smartMarketPrice?.price || 'N/A') + ' CGC 10';
+    } else {
+      console.log('CONNECTION TEST: No card data returned', json);
+    }
+  } catch(e) {
+    console.error('CONNECTION TEST FAILED:', e);
+  }
+})();
 </script>
 
 </body>
