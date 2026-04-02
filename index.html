@@ -165,7 +165,7 @@
 
   .card-row {
     display: grid;
-    grid-template-columns: 32px 60px 1fr 90px 100px 100px 90px 80px 80px;
+    grid-template-columns: 32px 60px 1fr 90px 100px 100px 80px 80px;
     align-items: center;
     padding: 10px 12px;
     background: var(--surface);
@@ -183,7 +183,7 @@
 
   .card-row-header {
     display: grid;
-    grid-template-columns: 32px 60px 1fr 90px 100px 100px 90px 80px 80px;
+    grid-template-columns: 32px 60px 1fr 90px 100px 100px 80px 80px;
     padding: 8px 12px;
     font-size: 10px;
     text-transform: uppercase;
@@ -229,10 +229,6 @@
   .spread-positive { color: var(--accent); font-weight: 700; }
   .spread-negative { color: var(--red); font-weight: 700; }
   .spread-neutral { color: var(--yellow); font-weight: 700; }
-
-  .trend-rising { color: var(--accent); }
-  .trend-falling { color: var(--red); }
-  .trend-stable { color: var(--text-dim); }
 
   .confidence-high { color: var(--accent); }
   .confidence-medium { color: var(--yellow); }
@@ -380,8 +376,6 @@
     }
     .card-row .card-img-cell,
     .card-row-header .col-img,
-    .card-row .col-trend,
-    .card-row-header .col-trend-h,
     .card-row .col-confidence,
     .card-row-header .col-confidence-h,
     .card-row .col-sales,
@@ -426,7 +420,7 @@
 <div id="resultsArea">
   <div class="empty-state">
     <h2>Select a Set and Scan</h2>
-    <p>Scanner will compare raw NM market price vs CGC 10 average sold price</p>
+    <p>Scanner will compare raw NM market price vs CGC 10 sold price</p>
     <p style="margin-top:8px; font-size:11px;">API key loaded. Select a set or hit Scan All.</p>
   </div>
 </div>
@@ -514,6 +508,36 @@ function showError(msg) {
   document.getElementById('statusText').innerHTML = `<span class="error">${msg}</span>`;
 }
 
+function getCgc10Price(cgc10Data) {
+  if (!cgc10Data) return null;
+
+  if (
+    cgc10Data.smartMarketPrice &&
+    cgc10Data.smartMarketPrice.price != null &&
+    cgc10Data.smartMarketPrice.daysUsed === 30
+  ) {
+    return cgc10Data.smartMarketPrice.price;
+  }
+
+  return cgc10Data.medianPrice ?? cgc10Data.averagePrice ?? null;
+}
+
+function getCgc10Method(cgc10Data) {
+  if (!cgc10Data) return 'none';
+
+  if (
+    cgc10Data.smartMarketPrice &&
+    cgc10Data.smartMarketPrice.price != null &&
+    cgc10Data.smartMarketPrice.daysUsed === 30
+  ) {
+    return 'smartMarketPrice30Day';
+  }
+
+  if (cgc10Data.medianPrice != null) return 'medianPrice';
+  if (cgc10Data.averagePrice != null) return 'averagePrice';
+  return 'none';
+}
+
 async function scanSet(setName) {
   const setData = SETS[setName];
   const cardEntries = Object.entries(setData.cards);
@@ -586,12 +610,14 @@ async function scanSet(setName) {
 
         if (grades && grades.cgc10) {
           cgc10Data = grades.cgc10;
-          cgc10 =
-            cgc10Data.marketPriceMedian7Day ??
-            cgc10Data.medianPrice ??
-            cgc10Data.averagePrice ??
-            null;
+          cgc10 = getCgc10Price(cgc10Data);
         }
+
+        const confidence = (
+          cgc10Data?.smartMarketPrice &&
+          cgc10Data.smartMarketPrice.price != null &&
+          cgc10Data.smartMarketPrice.daysUsed === 30
+        ) ? cgc10Data.smartMarketPrice.confidence || null : null;
 
         if (!window._debugSample) {
           window._debugSample = {
@@ -602,11 +628,7 @@ async function scanSet(setName) {
             pricesObj: card.prices,
             ebayGradeKeys: grades ? Object.keys(grades) : [],
             cgc10DataFound: cgc10Data,
-            gradedPricingMethodUsed:
-              cgc10Data?.marketPriceMedian7Day != null ? 'marketPriceMedian7Day' :
-              cgc10Data?.medianPrice != null ? 'medianPrice' :
-              cgc10Data?.averagePrice != null ? 'averagePrice' :
-              'none'
+            gradedPricingMethodUsed: getCgc10Method(cgc10Data)
           };
           console.log('DEBUG first card:', window._debugSample);
         }
@@ -627,9 +649,8 @@ async function scanSet(setName) {
           cgc10: cgc10,
           spread: spread,
           spreadPct: spreadPct,
-          trend: cgc10Data?.marketTrend || null,
           salesCount: cgc10Data?.count || 0,
-          confidence: cgc10Data?.smartMarketPrice?.confidence || null,
+          confidence: confidence,
           image: card.imageCdnUrl200 || card.imageCdnUrl400 || null,
           tcgPlayerUrl: card.tcgPlayerUrl || null,
           ebayGrades: card.ebay?.salesByGrade ? Object.keys(card.ebay.salesByGrade) : [],
@@ -762,7 +783,6 @@ function renderResults(results) {
         <div>Raw NM</div>
         <div>CGC 10</div>
         <div>Spread</div>
-        <div class="col-trend-h">Trend</div>
         <div class="col-confidence-h">Conf.</div>
         <div class="col-sales-h">Sales</div>
       </div>
@@ -800,9 +820,6 @@ function renderResults(results) {
         <div>
           <span class="${spreadClass}">${spreadStr}</span>
           ${spreadDollar ? `<br><span style="font-size:10px;color:var(--text-dim)">${spreadDollar}</span>` : ''}
-        </div>
-        <div class="col-trend">
-          ${r.trend ? `<span class="trend-${r.trend}">${r.trend}</span>` : '<span style="color:var(--text-dim)">--</span>'}
         </div>
         <div class="col-confidence">
           ${r.confidence ? `<span class="confidence-${r.confidence}">${r.confidence}</span>` : '<span style="color:var(--text-dim)">--</span>'}
@@ -895,7 +912,7 @@ function renderFooter(results) {
           <h4>Data Quality</h4>
           <ul>
             ${concernsHtml || '<li>No concerns detected</li>'}
-            <li>CGC 10 prices use 7-day median first, then median, then average</li>
+            <li>CGC 10 uses 30-day smart price first, then median, then average</li>
             <li>Raw NM = TCGPlayer market price</li>
           </ul>
         </div>
@@ -928,25 +945,23 @@ function renderFooter(results) {
     const card = Array.isArray(json.data) ? json.data[0] : json.data;
 
     if (card && card.prices) {
-      const testCgc10 =
-        card.ebay?.salesByGrade?.cgc10?.marketPriceMedian7Day ??
-        card.ebay?.salesByGrade?.cgc10?.medianPrice ??
-        card.ebay?.salesByGrade?.cgc10?.averagePrice ??
-        'N/A';
+      const cgc10Data = card.ebay?.salesByGrade?.cgc10 || null;
+      const testCgc10 = getCgc10Price(cgc10Data);
 
       console.log('CONNECTION TEST PASSED');
       console.log('Card:', card.name);
       console.log('Raw NM (prices.market):', card.prices.market);
       console.log('CGC10 data:', testCgc10);
+      console.log('CGC10 method used:', getCgc10Method(cgc10Data));
 
       document.getElementById('statusBar').style.display = 'flex';
       document.getElementById('statusText').innerHTML =
         'API connected. Test: ' + card.name + ' = $' + card.prices.market + ' raw / $' +
-        testCgc10 + ' CGC 10';
+        (testCgc10 ?? 'N/A') + ' CGC 10';
     } else {
       console.log('CONNECTION TEST: No card data returned', json);
     }
-  } catch (e) {
+  } catch(e) {
     console.error('CONNECTION TEST FAILED:', e);
   }
 })();
