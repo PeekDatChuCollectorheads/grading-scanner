@@ -407,7 +407,6 @@
 </div>
 
 <div class="controls">
-  
   <div class="control-group">
     <label>Set</label>
     <select id="setSelect">
@@ -434,10 +433,8 @@
 <div id="footerArea"></div>
 
 <script>
-// IMPORTANT: Replace this URL with your Cloudflare Worker URL after deploying
 const API_BASE = 'https://pkm-proxy.collectorheadscollectibles.workers.dev/api/v2';
 
-// Pre-loaded card lists: card number => { name, rarity }
 const SETS = {
   "Scarlet & Violet 151": {
     searchName: "151",
@@ -467,7 +464,6 @@ const SETS = {
   }
 };
 
-// Populate set dropdown
 const setSelect = document.getElementById('setSelect');
 Object.keys(SETS).forEach(name => {
   const opt = document.createElement('option');
@@ -476,21 +472,22 @@ Object.keys(SETS).forEach(name => {
   setSelect.appendChild(opt);
 });
 
-// API key handled by Cloudflare Worker proxy
-
 async function apiCall(endpoint, params) {
   const queryStr = Object.entries(params)
-    .map(([k,v]) => k + '=' + encodeURIComponent(v))
+    .map(([k, v]) => k + '=' + encodeURIComponent(v))
     .join('&');
   const fullUrl = API_BASE + endpoint + '?' + queryStr;
   console.log('Fetching:', fullUrl);
+
   try {
     const resp = await fetch(fullUrl);
     const text = await resp.text();
     console.log('Raw response status:', resp.status, 'body preview:', text.substring(0, 300));
+
     if (!resp.ok) {
       throw new Error('API error ' + resp.status + ': ' + text.substring(0, 200));
     }
+
     return JSON.parse(text);
   } catch (err) {
     console.error('apiCall failed for', fullUrl, err);
@@ -525,15 +522,14 @@ async function scanSet(setName) {
 
   for (let i = 0; i < cardEntries.length; i += batchSize) {
     const batch = cardEntries.slice(i, i + batchSize);
+
     showStatus(
-      `${setName}: Scanning cards ${i+1}-${Math.min(i+batchSize, cardEntries.length)} of ${cardEntries.length}`,
+      `${setName}: Scanning cards ${i + 1}-${Math.min(i + batchSize, cardEntries.length)} of ${cardEntries.length}`,
       Math.round((i / cardEntries.length) * 100)
     );
 
     const promises = batch.map(async ([cardNum, info]) => {
       try {
-        // Use the exact search format confirmed to work:
-        // search=Bulbasaur 166/165&set=151&includeEbay=true
         const data = await apiCall('/cards', {
           search: info.name + ' ' + cardNum,
           set: setData.searchName,
@@ -542,19 +538,26 @@ async function scanSet(setName) {
           limit: '5'
         });
 
-        // Handle both single object and array responses
         let card = null;
+
         if (!data || !data.data) {
           console.warn(`No data returned for ${info.name}`);
-          return { name: info.name, cardNumber: cardNum, rarity: info.rarity, setName, rawNM: null, cgc10: null, spread: null, spreadPct: null, error: 'No data returned' };
+          return {
+            name: info.name,
+            cardNumber: cardNum,
+            rarity: info.rarity,
+            setName,
+            rawNM: null,
+            cgc10: null,
+            spread: null,
+            spreadPct: null,
+            error: 'No data returned'
+          };
         }
 
         if (Array.isArray(data.data)) {
-          // Try exact match on card number first
           card = data.data.find(c => c.cardNumber === cardNum);
-          // Fallback: match just the number part
           if (!card) card = data.data.find(c => c.cardNumber && c.cardNumber.startsWith(cardNum.split('/')[0]));
-          // Last resort: first result
           if (!card && data.data.length > 0) card = data.data[0];
         } else {
           card = data.data;
@@ -562,23 +565,34 @@ async function scanSet(setName) {
 
         if (!card) {
           console.warn(`Card not found in results for ${info.name}`);
-          return { name: info.name, cardNumber: cardNum, rarity: info.rarity, setName, rawNM: null, cgc10: null, spread: null, spreadPct: null, error: 'Card not found' };
+          return {
+            name: info.name,
+            cardNumber: cardNum,
+            rarity: info.rarity,
+            setName,
+            rawNM: null,
+            cgc10: null,
+            spread: null,
+            spreadPct: null,
+            error: 'Card not found'
+          };
         }
 
-        // Extract raw NM price
         const rawNM = card.prices?.market ?? null;
 
-        // Extract CGC 10 data
         let cgc10 = null;
         let cgc10Data = null;
         const grades = card.ebay?.salesByGrade;
 
         if (grades && grades.cgc10) {
           cgc10Data = grades.cgc10;
-          cgc10 = cgc10Data.smartMarketPrice?.price ?? cgc10Data.medianPrice ?? cgc10Data.averagePrice ?? null;
+          cgc10 =
+            cgc10Data.marketPriceMedian7Day ??
+            cgc10Data.medianPrice ??
+            cgc10Data.averagePrice ??
+            null;
         }
 
-        // Log first card for debugging
         if (!window._debugSample) {
           window._debugSample = {
             cardName: info.name,
@@ -588,6 +602,11 @@ async function scanSet(setName) {
             pricesObj: card.prices,
             ebayGradeKeys: grades ? Object.keys(grades) : [],
             cgc10DataFound: cgc10Data,
+            gradedPricingMethodUsed:
+              cgc10Data?.marketPriceMedian7Day != null ? 'marketPriceMedian7Day' :
+              cgc10Data?.medianPrice != null ? 'medianPrice' :
+              cgc10Data?.averagePrice != null ? 'averagePrice' :
+              'none'
           };
           console.log('DEBUG first card:', window._debugSample);
         }
@@ -623,7 +642,10 @@ async function scanSet(setName) {
           cardNumber: cardNum,
           rarity: info.rarity,
           setName: setName,
-          rawNM: null, cgc10: null, spread: null, spreadPct: null,
+          rawNM: null,
+          cgc10: null,
+          spread: null,
+          spreadPct: null,
           error: err.message
         };
       }
@@ -632,7 +654,6 @@ async function scanSet(setName) {
     const batchResults = await Promise.all(promises);
     results.push(...batchResults.filter(r => r !== null));
 
-    // Brief delay between batches to respect rate limits
     if (i + batchSize < cardEntries.length) {
       await new Promise(r => setTimeout(r, 500));
     }
@@ -643,7 +664,10 @@ async function scanSet(setName) {
 
 async function scanSelected() {
   const setName = setSelect.value;
-  if (!setName) { alert('Select a set'); return; }
+  if (!setName) {
+    alert('Select a set');
+    return;
+  }
 
   document.getElementById('scanBtn').disabled = true;
   document.getElementById('scanAllBtn').disabled = true;
@@ -673,6 +697,7 @@ async function scanAll() {
       const results = await scanSet(setNames[s]);
       allResults.push(...results);
     }
+
     showStatus(`Complete: ${allResults.length} cards across ${setNames.length} sets`, 100);
     setTimeout(hideStatus, 2000);
     renderResults(allResults);
@@ -685,7 +710,6 @@ async function scanAll() {
 }
 
 function renderResults(results) {
-  // Sort by spread % descending, nulls at bottom
   results.sort((a, b) => {
     if (a.spreadPct === null && b.spreadPct === null) return 0;
     if (a.spreadPct === null) return 1;
@@ -693,13 +717,11 @@ function renderResults(results) {
     return b.spreadPct - a.spreadPct;
   });
 
-  // Calculate summary stats
   const withSpread = results.filter(r => r.spreadPct !== null);
-  const avgSpread = withSpread.length ? withSpread.reduce((s,r) => s + r.spreadPct, 0) / withSpread.length : 0;
+  const avgSpread = withSpread.length ? withSpread.reduce((s, r) => s + r.spreadPct, 0) / withSpread.length : 0;
   const topOpportunity = withSpread.length ? withSpread[0] : null;
   const noData = results.filter(r => r.cgc10 === null);
 
-  // Render summary
   document.getElementById('summaryArea').innerHTML = `
     <div class="summary-bar">
       <div class="summary-card">
@@ -731,7 +753,6 @@ function renderResults(results) {
     </div>
   `;
 
-  // Render table
   let html = `
     <div class="results">
       <div class="card-row-header">
@@ -753,9 +774,11 @@ function renderResults(results) {
     const spreadStr = r.spreadPct !== null
       ? `${r.spreadPct > 0 ? '+' : ''}${r.spreadPct.toFixed(1)}%`
       : 'N/A';
+
     const spreadClass = r.spreadPct === null ? '' :
       r.spreadPct >= 50 ? 'spread-positive' :
       r.spreadPct >= 0 ? 'spread-neutral' : 'spread-negative';
+
     const spreadDollar = r.spread !== null ? `$${r.spread.toFixed(0)}` : '';
 
     html += `
@@ -794,10 +817,8 @@ function renderResults(results) {
   html += '</div></div>';
   document.getElementById('resultsArea').innerHTML = html;
 
-  // Render footer
   renderFooter(results);
 
-  // Render debug panel
   if (window._debugSample) {
     const d = window._debugSample;
     const debugHtml = `
@@ -808,6 +829,7 @@ function renderResults(results) {
             <h4>Extracted Values</h4>
             <p>Raw NM: ${d.rawNM !== null ? '$' + d.rawNM : 'NULL'}</p>
             <p>CGC 10: ${d.cgc10 !== null ? '$' + d.cgc10 : 'NULL'}</p>
+            <p>Graded Field Used: ${d.gradedPricingMethodUsed || 'none'}</p>
           </div>
           <div class="footer-section">
             <h4>eBay Grade Keys Found</h4>
@@ -842,7 +864,6 @@ function renderFooter(results) {
   const noData = results.filter(r => r.cgc10 === null);
   const negativeSpreads = withSpread.filter(r => r.spreadPct < 0);
 
-  // Detect available grades from data
   const allGrades = new Set();
   results.forEach(r => {
     if (r.ebayGrades) r.ebayGrades.forEach(g => allGrades.add(g));
@@ -874,7 +895,7 @@ function renderFooter(results) {
           <h4>Data Quality</h4>
           <ul>
             ${concernsHtml || '<li>No concerns detected</li>'}
-            <li>CGC 10 prices from eBay sold data (90 day window)</li>
+            <li>CGC 10 prices use 7-day median first, then median, then average</li>
             <li>Raw NM = TCGPlayer market price</li>
           </ul>
         </div>
@@ -897,27 +918,35 @@ function renderFooter(results) {
   `;
 }
 
-// Connection test on load
 (async function() {
   try {
     const testUrl = API_BASE + '/cards?search=Bulbasaur%20166/165&set=151&includeEbay=true&limit=1';
     console.log('Connection test:', testUrl);
+
     const resp = await fetch(testUrl);
     const json = await resp.json();
     const card = Array.isArray(json.data) ? json.data[0] : json.data;
+
     if (card && card.prices) {
+      const testCgc10 =
+        card.ebay?.salesByGrade?.cgc10?.marketPriceMedian7Day ??
+        card.ebay?.salesByGrade?.cgc10?.medianPrice ??
+        card.ebay?.salesByGrade?.cgc10?.averagePrice ??
+        'N/A';
+
       console.log('CONNECTION TEST PASSED');
       console.log('Card:', card.name);
       console.log('Raw NM (prices.market):', card.prices.market);
-      console.log('CGC10 data:', card.ebay?.salesByGrade?.cgc10?.smartMarketPrice?.price);
+      console.log('CGC10 data:', testCgc10);
+
       document.getElementById('statusBar').style.display = 'flex';
-      document.getElementById('statusText').innerHTML = 
-        'API connected. Test: ' + card.name + ' = $' + card.prices.market + ' raw / $' + 
-        (card.ebay?.salesByGrade?.cgc10?.smartMarketPrice?.price || 'N/A') + ' CGC 10';
+      document.getElementById('statusText').innerHTML =
+        'API connected. Test: ' + card.name + ' = $' + card.prices.market + ' raw / $' +
+        testCgc10 + ' CGC 10';
     } else {
       console.log('CONNECTION TEST: No card data returned', json);
     }
-  } catch(e) {
+  } catch (e) {
     console.error('CONNECTION TEST FAILED:', e);
   }
 })();
