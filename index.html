@@ -407,7 +407,7 @@
 </div>
 
 <div class="controls">
-  <input type="hidden" id="apiKey" value="pokeprice_pro_c28e85445726c75a2e218f1ea07cc8889faa25391d468eb0">
+  
   <div class="control-group">
     <label>Set</label>
     <select id="setSelect">
@@ -434,7 +434,8 @@
 <div id="footerArea"></div>
 
 <script>
-const API_BASE = 'https://www.pokemonpricetracker.com/api/v2';
+// IMPORTANT: Replace this URL with your Cloudflare Worker URL after deploying
+const API_BASE = 'https://pkm-proxy.collectorheadscollectibles.workers.dev/api/v2';
 
 // Pre-loaded card lists: card number => { name, rarity }
 const SETS = {
@@ -475,18 +476,12 @@ Object.keys(SETS).forEach(name => {
   setSelect.appendChild(opt);
 });
 
-function getApiKey() {
-  const key = document.getElementById('apiKey').value.trim();
-  if (!key) { alert('Enter your API key'); return null; }
-  return key;
-}
+// API key handled by Cloudflare Worker proxy
 
-async function apiCall(endpoint, params, apiKey) {
+async function apiCall(endpoint, params) {
   const url = new URL(API_BASE + endpoint);
   Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
-  const resp = await fetch(url, {
-    headers: { 'Authorization': 'Bearer ' + apiKey }
-  });
+  const resp = await fetch(url);
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({}));
     throw new Error(err.message || `API error ${resp.status}`);
@@ -513,7 +508,7 @@ function showError(msg) {
   document.getElementById('statusText').innerHTML = `<span class="error">${msg}</span>`;
 }
 
-async function scanSet(setName, apiKey) {
+async function scanSet(setName) {
   const setData = SETS[setName];
   const cardEntries = Object.entries(setData.cards);
   const results = [];
@@ -529,68 +524,61 @@ async function scanSet(setName, apiKey) {
     const promises = batch.map(async ([cardNum, info]) => {
       try {
         const data = await apiCall('/cards', {
-          search: `${info.name} ${cardNum.split('/')[0]}`,
+          search: `${info.name} ${cardNum}`,
           set: setData.searchName,
           includeEbay: 'true',
           days: '90',
-          limit: '5'
-        }, apiKey);
+          limit: '10'
+        });
 
+        // Handle both single object and array responses
         let card = null;
-        if (data.data) {
-          if (Array.isArray(data.data)) {
-            card = data.data.find(c => c.cardNumber === cardNum.split('/')[0] || c.cardNumber === cardNum);
-            if (!card && data.data.length > 0) card = data.data[0];
-          } else {
-            card = data.data;
-          }
+        if (!data || !data.data) {
+          console.warn(`No data returned for ${info.name}`);
+          return { name: info.name, cardNumber: cardNum, rarity: info.rarity, setName, rawNM: null, cgc10: null, spread: null, spreadPct: null, error: 'No data returned' };
         }
 
-        if (!card) return null;
+        if (Array.isArray(data.data)) {
+          // Try exact match on card number first
+          card = data.data.find(c => c.cardNumber === cardNum);
+          // Fallback: match just the number part
+          if (!card) card = data.data.find(c => c.cardNumber && c.cardNumber.startsWith(cardNum.split('/')[0]));
+          // Last resort: first result
+          if (!card && data.data.length > 0) card = data.data[0];
+        } else {
+          card = data.data;
+        }
 
-        // Capture first card's raw response for debugging
+        if (!card) {
+          console.warn(`Card not found in results for ${info.name}`);
+          return { name: info.name, cardNumber: cardNum, rarity: info.rarity, setName, rawNM: null, cgc10: null, spread: null, spreadPct: null, error: 'Card not found' };
+        }
+
+        // Extract raw NM price
+        const rawNM = card.prices?.market ?? null;
+
+        // Extract CGC 10 data
+        let cgc10 = null;
+        let cgc10Data = null;
+        const grades = card.ebay?.salesByGrade;
+
+        if (grades && grades.cgc10) {
+          cgc10Data = grades.cgc10;
+          cgc10 = cgc10Data.smartMarketPrice?.price ?? cgc10Data.medianPrice ?? cgc10Data.averagePrice ?? null;
+        }
+
+        // Log first card for debugging
         if (!window._debugSample) {
           window._debugSample = {
             cardName: info.name,
             cardNumber: cardNum,
+            rawNM,
+            cgc10,
             pricesObj: card.prices,
-            ebayObj: card.ebay,
-            topLevelKeys: Object.keys(card),
-            ebayKeys: card.ebay ? Object.keys(card.ebay) : [],
-            salesByGradeKeys: card.ebay?.salesByGrade ? Object.keys(card.ebay.salesByGrade) : [],
-            rawCard: card
+            ebayGradeKeys: grades ? Object.keys(grades) : [],
+            cgc10DataFound: cgc10Data,
           };
-        }
-
-        const rawNM = card.prices?.market
-          || card.prices?.conditions?.['Near Mint']?.price
-          || card.prices?.low
-          || null;
-        let cgc10 = null;
-        let cgc10Data = null;
-
-        if (card.ebay?.salesByGrade) {
-          const grades = card.ebay.salesByGrade;
-          // Try various key formats for CGC 10
-          const cgcKey = Object.keys(grades).find(k => {
-            const lk = k.toLowerCase().replace(/[\s_-]/g, '');
-            return lk === 'cgc10' || lk === 'cgcperfect10' || lk === 'cgcpristine10' || lk === 'cgcgemmint10';
-          });
-          if (cgcKey) {
-            cgc10Data = grades[cgcKey];
-            cgc10 = cgc10Data.smartMarketPrice?.price || cgc10Data.medianPrice || cgc10Data.averagePrice || null;
-          }
-          // Broader fallback: any key containing "cgc" and "10"
-          if (!cgc10) {
-            const fallbackKey = Object.keys(grades).find(k => {
-              const lk = k.toLowerCase();
-              return lk.includes('cgc') && lk.includes('10');
-            });
-            if (fallbackKey) {
-              cgc10Data = grades[fallbackKey];
-              cgc10 = cgc10Data.smartMarketPrice?.price || cgc10Data.medianPrice || cgc10Data.averagePrice || null;
-            }
-          }
+          console.log('DEBUG first card:', window._debugSample);
         }
 
         let spread = null;
@@ -643,8 +631,6 @@ async function scanSet(setName, apiKey) {
 }
 
 async function scanSelected() {
-  const apiKey = getApiKey();
-  if (!apiKey) return;
   const setName = setSelect.value;
   if (!setName) { alert('Select a set'); return; }
 
@@ -652,7 +638,7 @@ async function scanSelected() {
   document.getElementById('scanAllBtn').disabled = true;
 
   try {
-    const results = await scanSet(setName, apiKey);
+    const results = await scanSet(setName);
     showStatus(`Complete: ${results.length} cards scanned`, 100);
     setTimeout(hideStatus, 2000);
     renderResults(results);
@@ -665,9 +651,6 @@ async function scanSelected() {
 }
 
 async function scanAll() {
-  const apiKey = getApiKey();
-  if (!apiKey) return;
-
   document.getElementById('scanBtn').disabled = true;
   document.getElementById('scanAllBtn').disabled = true;
 
@@ -676,7 +659,7 @@ async function scanAll() {
 
   try {
     for (let s = 0; s < setNames.length; s++) {
-      const results = await scanSet(setNames[s], apiKey);
+      const results = await scanSet(setNames[s]);
       allResults.push(...results);
     }
     showStatus(`Complete: ${allResults.length} cards across ${setNames.length} sets`, 100);
@@ -808,25 +791,24 @@ function renderResults(results) {
     const d = window._debugSample;
     const debugHtml = `
       <div class="footer-notes" style="margin-top:4px;">
-        <h3>Debug: Raw API Response (${d.cardName} ${d.cardNumber})</h3>
+        <h3>Debug: API Response Sample (${d.cardName} ${d.cardNumber})</h3>
         <div class="footer-grid">
           <div class="footer-section">
-            <h4>Top-Level Card Keys</h4>
-            <p style="word-break:break-all;">${d.topLevelKeys.join(', ')}</p>
+            <h4>Extracted Values</h4>
+            <p>Raw NM: ${d.rawNM !== null ? '$' + d.rawNM : 'NULL'}</p>
+            <p>CGC 10: ${d.cgc10 !== null ? '$' + d.cgc10 : 'NULL'}</p>
+          </div>
+          <div class="footer-section">
+            <h4>eBay Grade Keys Found</h4>
+            <p>${d.ebayGradeKeys.length ? d.ebayGradeKeys.join(', ') : 'NONE'}</p>
           </div>
           <div class="footer-section">
             <h4>Prices Object</h4>
-            <pre style="font-size:10px;color:var(--text-dim);white-space:pre-wrap;word-break:break-all;max-height:200px;overflow:auto;">${JSON.stringify(d.pricesObj, null, 2)}</pre>
+            <pre style="font-size:10px;color:var(--text-dim);white-space:pre-wrap;word-break:break-all;max-height:150px;overflow:auto;">${JSON.stringify(d.pricesObj, null, 2)}</pre>
           </div>
           <div class="footer-section">
-            <h4>eBay Top-Level Keys</h4>
-            <p>${d.ebayKeys.length ? d.ebayKeys.join(', ') : 'NO EBAY DATA RETURNED'}</p>
-            <h4 style="margin-top:8px;">salesByGrade Keys</h4>
-            <p>${d.salesByGradeKeys.length ? d.salesByGradeKeys.join(', ') : 'NO GRADES FOUND'}</p>
-          </div>
-          <div class="footer-section">
-            <h4>Full eBay Object</h4>
-            <pre style="font-size:10px;color:var(--text-dim);white-space:pre-wrap;word-break:break-all;max-height:300px;overflow:auto;">${JSON.stringify(d.ebayObj, null, 2)}</pre>
+            <h4>CGC 10 Grade Data</h4>
+            <pre style="font-size:10px;color:var(--text-dim);white-space:pre-wrap;word-break:break-all;max-height:150px;overflow:auto;">${JSON.stringify(d.cgc10DataFound, null, 2)}</pre>
           </div>
         </div>
       </div>
