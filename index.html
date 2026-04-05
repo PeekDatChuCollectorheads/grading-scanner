@@ -6,687 +6,449 @@
 <title>Grading Arbitrage Scanner</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #12121a;
-    --surface2: #1a1a25;
-    --border: #2a2a3a;
-    --text: #e8e8f0;
-    --text-dim: #8888a0;
-    --accent: #00e5a0;
-    --accent-dim: #00e5a033;
-    --red: #ff4466;
-    --red-dim: #ff446633;
-    --yellow: #ffcc00;
-    --yellow-dim: #ffcc0033;
-    --blue: #4488ff;
-  }
+:root {
+  --bg: #0a0a0f; --surface: #12121a; --surface2: #1a1a25; --border: #2a2a3a;
+  --text: #e8e8f0; --text-dim: #8888a0; --accent: #00e5a0; --accent-dim: #00e5a033;
+  --red: #ff4466; --red-dim: #ff446633; --yellow: #ffcc00; --yellow-dim: #ffcc0033; --blue: #4488ff;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;min-height:100vh;font-size:13px}
+.header{padding:24px 24px 16px;border-bottom:1px solid var(--border)}
+.header h1{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;color:var(--accent);line-height:1}
+.header .subtitle{font-family:'Syne',sans-serif;font-size:12px;color:var(--text-dim);margin-top:4px;letter-spacing:1px;text-transform:uppercase}
+.controls{padding:16px 24px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;border-bottom:1px solid var(--border);background:var(--surface)}
+.control-group{display:flex;flex-direction:column;gap:4px}
+.control-group label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);font-family:'Syne',sans-serif}
+select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 12px;font-family:'Space Mono',monospace;font-size:12px;border-radius:4px;outline:none;cursor:pointer;min-width:140px}
+select:focus{border-color:var(--accent)}
+.btn{font-family:'Syne',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;border:none;padding:9px 20px;border-radius:4px;cursor:pointer;transition:all .15s}
+.btn-primary{background:var(--accent);color:var(--bg)}
+.btn-primary:hover{opacity:.85}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--accent)}
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+/* Multi-select dropdown */
+.multiselect{position:relative;min-width:220px}
+.multiselect-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 28px 8px 12px;font-family:'Space Mono',monospace;font-size:12px;border-radius:4px;cursor:pointer;width:100%;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative}
+.multiselect-btn::after{content:"▾";position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text-dim);font-size:10px}
+.multiselect-btn:focus{border-color:var(--accent);outline:none}
+.multiselect-list{display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 4px 4px;max-height:280px;overflow-y:auto;z-index:200;box-shadow:0 8px 20px rgba(0,0,0,.5)}
+.multiselect.open .multiselect-list{display:block}
+.multiselect-item{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:12px;transition:background .1s;font-family:'Space Mono',monospace}
+.multiselect-item:hover{background:var(--surface)}
+.multiselect-item.disabled{opacity:.35;cursor:not-allowed}
+.multiselect-item input[type=checkbox]{accent-color:var(--accent);cursor:pointer;width:14px;height:14px}
+.multiselect-item.disabled input{cursor:not-allowed}
+.multiselect-max{padding:6px 12px;font-size:10px;color:var(--yellow);font-family:'Syne',sans-serif;text-transform:uppercase;letter-spacing:.5px;border-top:1px solid var(--border)}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Space Mono', monospace;
-    min-height: 100vh;
-    font-size: 13px;
-  }
-
-  .header {
-    padding: 24px 24px 16px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .header h1 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 36px;
-    letter-spacing: 3px;
-    color: var(--accent);
-    line-height: 1;
-  }
-
-  .header .subtitle {
-    font-family: 'Syne', sans-serif;
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-top: 4px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-
-  .controls {
-    padding: 16px 24px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: flex-end;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-  }
-
-  .control-group {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .control-group label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-dim);
-    font-family: 'Syne', sans-serif;
-  }
-
-  select {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 8px 12px;
-    font-family: 'Space Mono', monospace;
-    font-size: 12px;
-    border-radius: 4px;
-    outline: none;
-    cursor: pointer;
-    min-width: 160px;
-  }
-
-  select:focus { border-color: var(--accent); }
-
-  .btn {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 12px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    border: none;
-    padding: 9px 20px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-
-  .btn-primary { background: var(--accent); color: var(--bg); }
-  .btn-primary:hover { opacity: 0.85; }
-  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-  .btn-secondary:hover { border-color: var(--accent); }
-
-  .status-bar {
-    padding: 10px 24px;
-    font-size: 11px;
-    color: var(--text-dim);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .progress-bar {
-    height: 3px;
-    background: var(--surface2);
-    border-radius: 2px;
-    overflow: hidden;
-    width: 200px;
-  }
-
-  .progress-fill {
-    height: 100%;
-    background: var(--accent);
-    transition: width 0.3s;
-    width: 0%;
-  }
-
-  .results { padding: 16px 24px; }
-  .card-grid { display: grid; gap: 2px; }
-
-  .section-header {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    padding: 16px 0 8px;
-    color: var(--accent);
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 4px;
-  }
-
-  .section-header.psa-header { color: var(--blue); }
-
-  .card-row {
-    display: grid;
-    grid-template-columns: 32px 60px 1fr 90px 100px 100px 80px 80px;
-    align-items: center;
-    padding: 10px 12px;
-    background: var(--surface);
-    border-left: 3px solid transparent;
-    transition: background 0.1s;
-    gap: 8px;
-  }
-
-  .card-row:hover { background: var(--surface2); }
-  .card-row.tier-s { border-left-color: var(--accent); }
-  .card-row.tier-a { border-left-color: var(--blue); }
-  .card-row.tier-b { border-left-color: var(--yellow); }
-  .card-row.tier-c { border-left-color: var(--text-dim); }
-  .card-row.tier-avoid { border-left-color: var(--red); }
-
-  .card-row-header {
-    display: grid;
-    grid-template-columns: 32px 60px 1fr 90px 100px 100px 80px 80px;
-    padding: 8px 12px;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-dim);
-    font-family: 'Syne', sans-serif;
-    font-weight: 600;
-    gap: 8px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .rank { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--text-dim); }
-  .card-img { width: 48px; height: 67px; border-radius: 3px; object-fit: cover; background: var(--surface2); }
-  .card-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; line-height: 1.2; }
-  .card-meta { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
-  .price { font-weight: 700; }
-  .spread-positive { color: var(--accent); font-weight: 700; }
-  .spread-negative { color: var(--red); font-weight: 700; }
-  .spread-neutral { color: var(--yellow); font-weight: 700; }
-  .confidence-high { color: var(--accent); }
-  .confidence-medium { color: var(--yellow); }
-  .confidence-low { color: var(--red); }
-
-  .tag {
-    font-size: 9px; padding: 2px 6px; border-radius: 2px;
-    text-transform: uppercase; letter-spacing: 0.5px;
-    font-family: 'Syne', sans-serif; font-weight: 600; display: inline-block;
-  }
-  .tag-sir { background: var(--accent-dim); color: var(--accent); }
-  .tag-ir { background: var(--yellow-dim); color: var(--yellow); }
-
-  .summary-bar {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .summary-card {
-    background: var(--surface);
-    padding: 14px 16px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-  }
-
-  .summary-card .label {
-    font-family: 'Syne', sans-serif; font-size: 10px;
-    text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 4px;
-  }
-  .summary-card .value { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 1px; }
-  .summary-card .detail { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
-
-  .footer-notes { padding: 20px 24px; border-top: 1px solid var(--border); margin-top: 8px; }
-  .footer-notes h3 {
-    font-family: 'Syne', sans-serif; font-size: 12px;
-    text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 10px;
-  }
-  .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-  .footer-section {
-    background: var(--surface); padding: 14px 16px; border-radius: 4px; border: 1px solid var(--border);
-  }
-  .footer-section h4 {
-    font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); margin-bottom: 8px;
-  }
-  .footer-section p, .footer-section li { font-size: 11px; color: var(--text-dim); line-height: 1.6; }
-  .footer-section ul { list-style: none; padding: 0; }
-  .footer-section ul li::before { content: ">"; color: var(--accent); margin-right: 6px; font-weight: 700; }
-
-  .empty-state { text-align: center; padding: 80px 24px; color: var(--text-dim); }
-  .empty-state h2 {
-    font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; color: var(--text); margin-bottom: 8px;
-  }
-
-  .spinner {
-    display: inline-block; width: 14px; height: 14px;
-    border: 2px solid var(--border); border-top-color: var(--accent);
-    border-radius: 50%; animation: spin 0.6s linear infinite;
-    margin-right: 6px; vertical-align: middle;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .error { color: var(--red); }
-
-  @media (max-width: 900px) {
-    .card-row, .card-row-header {
-      grid-template-columns: 28px 1fr 70px 80px 70px;
-    }
-    .card-row .card-img-cell, .card-row-header .col-img,
-    .card-row .col-confidence, .card-row-header .col-confidence-h,
-    .card-row .col-sales, .card-row-header .col-sales-h { display: none; }
-  }
-
-  @media (max-width: 600px) {
-    .header h1 { font-size: 24px; }
-    .controls { flex-direction: column; }
-    select { min-width: 100%; }
-    .card-row, .card-row-header {
-      grid-template-columns: 28px 1fr 65px 60px;
-      font-size: 11px;
-    }
-  }
+.status-bar{padding:10px 24px;font-size:11px;color:var(--text-dim);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.progress-bar{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;width:200px}
+.progress-fill{height:100%;background:var(--accent);transition:width .3s;width:0%}
+.results{padding:16px 24px}
+.card-grid{display:grid;gap:2px}
+.section-header{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px;padding:16px 0 8px;color:var(--accent);border-bottom:1px solid var(--border);margin-bottom:4px}
+.section-header.psa-header{color:var(--blue)}
+.card-row{display:grid;grid-template-columns:32px 60px 1fr 90px 100px 100px 80px 80px;align-items:center;padding:10px 12px;background:var(--surface);border-left:3px solid transparent;transition:background .1s;gap:8px}
+.card-row:hover{background:var(--surface2)}
+.card-row.tier-s{border-left-color:var(--accent)}
+.card-row.tier-a{border-left-color:var(--blue)}
+.card-row.tier-b{border-left-color:var(--yellow)}
+.card-row.tier-c{border-left-color:var(--text-dim)}
+.card-row.tier-avoid{border-left-color:var(--red)}
+.card-row-header{display:grid;grid-template-columns:32px 60px 1fr 90px 100px 100px 80px 80px;padding:8px 12px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);font-family:'Syne',sans-serif;font-weight:600;gap:8px;border-bottom:1px solid var(--border)}
+.rank{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text-dim)}
+.card-img{width:48px;height:67px;border-radius:3px;object-fit:cover;background:var(--surface2)}
+.card-name{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;line-height:1.2}
+.card-meta{font-size:10px;color:var(--text-dim);margin-top:2px}
+.price{font-weight:700}
+.spread-positive{color:var(--accent);font-weight:700}
+.spread-negative{color:var(--red);font-weight:700}
+.spread-neutral{color:var(--yellow);font-weight:700}
+.confidence-high{color:var(--accent)}.confidence-medium{color:var(--yellow)}.confidence-low{color:var(--red)}
+.tag{font-size:9px;padding:2px 6px;border-radius:2px;text-transform:uppercase;letter-spacing:.5px;font-family:'Syne',sans-serif;font-weight:600;display:inline-block}
+.tag-sir{background:var(--accent-dim);color:var(--accent)}
+.tag-ir{background:var(--yellow-dim);color:var(--yellow)}
+.tag-holo{background:var(--blue);color:#fff;opacity:.7}
+.summary-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;padding:16px 24px;border-bottom:1px solid var(--border)}
+.summary-card{background:var(--surface);padding:14px 16px;border-radius:4px;border:1px solid var(--border)}
+.summary-card .label{font-family:'Syne',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:4px}
+.summary-card .value{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px}
+.summary-card .detail{font-size:10px;color:var(--text-dim);margin-top:2px}
+.footer-notes{padding:20px 24px;border-top:1px solid var(--border);margin-top:8px}
+.footer-notes h3{font-family:'Syne',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:10px}
+.footer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.footer-section{background:var(--surface);padding:14px 16px;border-radius:4px;border:1px solid var(--border)}
+.footer-section h4{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);margin-bottom:8px}
+.footer-section p,.footer-section li{font-size:11px;color:var(--text-dim);line-height:1.6}
+.footer-section ul{list-style:none;padding:0}
+.footer-section ul li::before{content:">";color:var(--accent);margin-right:6px;font-weight:700}
+.empty-state{text-align:center;padding:80px 24px;color:var(--text-dim)}
+.empty-state h2{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--text);margin-bottom:8px}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;margin-right:6px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error{color:var(--red)}
+@media(max-width:900px){
+  .card-row,.card-row-header{grid-template-columns:28px 1fr 70px 80px 70px}
+  .card-row .card-img-cell,.card-row-header .col-img,.card-row .col-confidence,.card-row-header .col-confidence-h,.card-row .col-sales,.card-row-header .col-sales-h{display:none}
+}
+@media(max-width:600px){
+  .header h1{font-size:24px}.controls{flex-direction:column}select,.multiselect{min-width:100%}
+  .card-row,.card-row-header{grid-template-columns:28px 1fr 65px 60px;font-size:11px}
+}
 </style>
 </head>
 <body>
-
 <div class="header">
   <h1>Grading Arbitrage Scanner</h1>
   <div class="subtitle">Raw NM vs Graded 10 // Spread Analysis</div>
 </div>
-
 <div class="controls">
-  <div class="control-group">
-    <label>TCG</label>
-    <select id="tcgSelect">
-      <option value="pokemon">Pokemon</option>
-    </select>
-  </div>
+  <div class="control-group"><label>TCG</label><select id="tcgSelect"><option value="pokemon">Pokemon</option></select></div>
+  <div class="control-group"><label>Series</label><select id="seriesSelect"><option value="">Select series</option></select></div>
   <div class="control-group">
     <label>Set</label>
-    <select id="setSelect">
-      <option value="">Select a set</option>
-    </select>
+    <div class="multiselect" id="setMultiselect">
+      <button class="multiselect-btn" id="setBtn" type="button">Select sets</button>
+      <div class="multiselect-list" id="setList"></div>
+    </div>
   </div>
-  <div class="control-group">
-    <label>Grader</label>
-    <select id="graderSelect">
-      <option value="cgc">CGC</option>
-      <option value="psa">PSA</option>
-      <option value="both">Both</option>
-    </select>
-  </div>
+  <div class="control-group"><label>Grader</label><select id="graderSelect"><option value="cgc">CGC</option><option value="psa">PSA</option><option value="both">Both</option></select></div>
   <button class="btn btn-primary" id="scanBtn" onclick="scanSelected()">Scan Set</button>
   <button class="btn btn-secondary" id="scanAllBtn" onclick="scanAll()">Scan All</button>
 </div>
-
-<div class="status-bar" id="statusBar" style="display:none;">
-  <span id="statusText"><span class="spinner"></span> Scanning...</span>
-  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-</div>
-
+<div class="status-bar" id="statusBar" style="display:none"><span id="statusText"></span><div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div></div>
 <div id="summaryArea"></div>
-<div id="resultsArea">
-  <div class="empty-state">
-    <h2>Select a Set and Scan</h2>
-    <p>Compare raw NM market price vs graded 10 sold price</p>
-    <p style="margin-top:8px; font-size:11px;">Select grader: CGC, PSA, or Both</p>
-  </div>
-</div>
+<div id="resultsArea"><div class="empty-state"><h2>Select Sets and Scan</h2><p>Compare raw NM market price vs graded 10 sold price</p></div></div>
 <div id="footerArea"></div>
-
 <script>
-const API_BASE = 'https://pkm-proxy.collectorheadscollectibles.workers.dev/api/v2';
+const SETS_RAW={"sv1":{"sn":"Scarlet & Violet","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2023-03-31","c":{"199":{"n":"Tarountula","r":"IR"},"200":{"n":"Dolliv","r":"IR"},"201":{"n":"Toedscool","r":"IR"},"202":{"n":"Scovillain","r":"IR"},"203":{"n":"Armarouge","r":"IR"},"204":{"n":"Slowpoke","r":"IR"},"205":{"n":"Clauncher","r":"IR"},"206":{"n":"Wiglett","r":"IR"},"207":{"n":"Dondozo","r":"IR"},"208":{"n":"Pachirisu","r":"IR"},"209":{"n":"Pawmot","r":"IR"},"210":{"n":"Drowzee","r":"IR"},"211":{"n":"Ralts","r":"IR"},"212":{"n":"Kirlia","r":"IR"},"213":{"n":"Fidough","r":"IR"},"214":{"n":"Greavard","r":"IR"},"215":{"n":"Riolu","r":"IR"},"216":{"n":"Sandile","r":"IR"},"217":{"n":"Klawf","r":"IR"},"218":{"n":"Mabosstiff","r":"IR"},"219":{"n":"Bombirdier","r":"IR"},"220":{"n":"Kingambit","r":"IR"},"221":{"n":"Starly","r":"IR"},"222":{"n":"Skwovet","r":"IR"},"243":{"n":"Spidops ex","r":"SIR"},"244":{"n":"Miraidon ex","r":"SIR"},"245":{"n":"Gardevoir ex","r":"SIR"},"246":{"n":"Great Tusk ex","r":"SIR"},"247":{"n":"Koraidon ex","r":"SIR"},"248":{"n":"Iron Treads ex","r":"SIR"},"249":{"n":"Arven","r":"SIR"},"250":{"n":"Jacq","r":"SIR"},"251":{"n":"Miriam","r":"SIR"},"252":{"n":"Penny","r":"SIR"}}},"sv2":{"sn":"Paldea Evolved","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2023-06-09","c":{"194":{"n":"Heracross","r":"IR"},"195":{"n":"Tropius","r":"IR"},"196":{"n":"Sprigatito","r":"IR"},"197":{"n":"Floragato","r":"IR"},"198":{"n":"Bramblin","r":"IR"},"199":{"n":"Fletchinder","r":"IR"},"200":{"n":"Pyroar","r":"IR"},"201":{"n":"Fuecoco","r":"IR"},"202":{"n":"Crocalor","r":"IR"},"203":{"n":"Magikarp","r":"IR"},"204":{"n":"Marill","r":"IR"},"205":{"n":"Eiscue","r":"IR"},"206":{"n":"Quaxly","r":"IR"},"207":{"n":"Quaxwell","r":"IR"},"208":{"n":"Frigibax","r":"IR"},"209":{"n":"Arctibax","r":"IR"},"210":{"n":"Baxcalibur","r":"IR"},"211":{"n":"Raichu","r":"IR"},"212":{"n":"Mismagius","r":"IR"},"213":{"n":"Gothorita","r":"IR"},"214":{"n":"Sandygast","r":"IR"},"215":{"n":"Rabsca","r":"IR"},"216":{"n":"Tinkatink","r":"IR"},"217":{"n":"Tinkatuff","r":"IR"},"218":{"n":"Paldean Tauros","r":"IR"},"219":{"n":"Sudowoodo","r":"IR"},"220":{"n":"Nacli","r":"IR"},"221":{"n":"Paldean Wooper","r":"IR"},"222":{"n":"Tyranitar","r":"IR"},"223":{"n":"Grafaiai","r":"IR"},"224":{"n":"Orthworm","r":"IR"},"225":{"n":"Rookidee","r":"IR"},"226":{"n":"Maushold","r":"IR"},"227":{"n":"Flamigo","r":"IR"},"228":{"n":"Farigiraf","r":"IR"},"229":{"n":"Dudunsparce","r":"IR"},"256":{"n":"Meowscarada ex","r":"SIR"},"257":{"n":"Wo-Chien ex","r":"SIR"},"258":{"n":"Skeledirge ex","r":"SIR"},"259":{"n":"Chi-Yu ex","r":"SIR"},"260":{"n":"Quaquaval ex","r":"SIR"},"261":{"n":"Chien-Pao ex","r":"SIR"},"262":{"n":"Tinkaton ex","r":"SIR"},"263":{"n":"Ting-Lu ex","r":"SIR"},"264":{"n":"Squawkabilly ex","r":"SIR"},"265":{"n":"Boss's Orders (Ghetsis)","r":"SIR"},"266":{"n":"Dendra","r":"SIR"},"267":{"n":"Giacomo","r":"SIR"},"268":{"n":"Grusha","r":"SIR"},"269":{"n":"Iono","r":"SIR"},"270":{"n":"Saguaro","r":"SIR"}}},"sv3":{"sn":"Obsidian Flames","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2023-08-11","c":{"198":{"n":"Gloom","r":"IR"},"199":{"n":"Ninetales","r":"IR"},"200":{"n":"Palafin","r":"IR"},"201":{"n":"Bellibolt","r":"IR"},"202":{"n":"Cleffa","r":"IR"},"203":{"n":"Larvitar","r":"IR"},"204":{"n":"Houndour","r":"IR"},"205":{"n":"Scizor","r":"IR"},"206":{"n":"Varoom","r":"IR"},"207":{"n":"Pidgey","r":"IR"},"208":{"n":"Pidgeotto","r":"IR"},"209":{"n":"Lechonk","r":"IR"},"222":{"n":"Eiscue ex","r":"SIR"},"223":{"n":"Charizard ex","r":"SIR"},"224":{"n":"Revavroom ex","r":"SIR"},"225":{"n":"Pidgeot ex","r":"SIR"},"226":{"n":"Geeta","r":"SIR"},"227":{"n":"Poppy","r":"SIR"}}},"sv3pt5":{"sn":"151","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2023-09-22","c":{"166":{"n":"Bulbasaur","r":"IR"},"167":{"n":"Ivysaur","r":"IR"},"168":{"n":"Charmander","r":"IR"},"169":{"n":"Charmeleon","r":"IR"},"170":{"n":"Squirtle","r":"IR"},"171":{"n":"Wartortle","r":"IR"},"172":{"n":"Caterpie","r":"IR"},"173":{"n":"Pikachu","r":"IR"},"174":{"n":"Nidoking","r":"IR"},"175":{"n":"Psyduck","r":"IR"},"176":{"n":"Poliwhirl","r":"IR"},"177":{"n":"Machoke","r":"IR"},"178":{"n":"Tangela","r":"IR"},"179":{"n":"Mr. Mime","r":"IR"},"180":{"n":"Omanyte","r":"IR"},"181":{"n":"Dragonair","r":"IR"},"198":{"n":"Venusaur ex","r":"SIR"},"199":{"n":"Charizard ex","r":"SIR"},"200":{"n":"Blastoise ex","r":"SIR"},"201":{"n":"Alakazam ex","r":"SIR"},"202":{"n":"Zapdos ex","r":"SIR"},"203":{"n":"Erika's Invitation","r":"SIR"},"204":{"n":"Giovanni's Charisma","r":"SIR"}}},"sv4":{"sn":"Paradox Rift","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2023-11-03","c":{"183":{"n":"Crustle","r":"IR"},"184":{"n":"Dottler","r":"IR"},"185":{"n":"Toedscruel","r":"IR"},"186":{"n":"Magby","r":"IR"},"187":{"n":"Iron Moth","r":"IR"},"188":{"n":"Snorunt","r":"IR"},"189":{"n":"Mantyke","r":"IR"},"190":{"n":"Vanillish","r":"IR"},"191":{"n":"Wimpod","r":"IR"},"192":{"n":"Veluza","r":"IR"},"193":{"n":"Plusle","r":"IR"},"194":{"n":"Minun","r":"IR"},"195":{"n":"Blitzle","r":"IR"},"196":{"n":"Joltik","r":"IR"},"197":{"n":"Espathra","r":"IR"},"198":{"n":"Gimmighoul","r":"IR"},"199":{"n":"Groudon","r":"IR"},"200":{"n":"Mienshao","r":"IR"},"201":{"n":"Minior","r":"IR"},"202":{"n":"Garganacl","r":"IR"},"203":{"n":"Slither Wing","r":"IR"},"204":{"n":"Garbodor","r":"IR"},"205":{"n":"Yveltal","r":"IR"},"206":{"n":"Morpeko","r":"IR"},"207":{"n":"Brute Bonnet","r":"IR"},"208":{"n":"Steelix","r":"IR"},"209":{"n":"Ferrothorn","r":"IR"},"210":{"n":"Aegislash","r":"IR"},"211":{"n":"Aipom","r":"IR"},"212":{"n":"Loudred","r":"IR"},"213":{"n":"Swablu","r":"IR"},"214":{"n":"Porygon-Z","r":"IR"},"215":{"n":"Cyclizar","r":"IR"},"216":{"n":"Iron Jugulis","r":"IR"},"245":{"n":"Garchomp ex","r":"SIR"},"246":{"n":"Golisopod ex","r":"SIR"},"247":{"n":"Tapu Koko ex","r":"SIR"},"248":{"n":"Iron Hands ex","r":"SIR"},"249":{"n":"Iron Valiant ex","r":"SIR"},"250":{"n":"Sandy Shocks ex","r":"SIR"},"251":{"n":"Roaring Moon ex","r":"SIR"},"252":{"n":"Gholdengo ex","r":"SIR"},"253":{"n":"Altaria ex","r":"SIR"},"254":{"n":"Mela","r":"SIR"},"255":{"n":"Parasol Lady","r":"SIR"},"256":{"n":"Professor Sada's Vitality","r":"SIR"},"257":{"n":"Professor Turo's Scenario","r":"SIR"},"258":{"n":"Rika","r":"SIR"},"259":{"n":"Tulip","r":"SIR"}}},"sv4pt5":{"sn":"Paldean Fates","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2024-01-26","c":{"224":{"n":"Wugtrio","r":"IR"},"225":{"n":"Palafin","r":"IR"},"226":{"n":"Pawmi","r":"IR"},"232":{"n":"Mew ex","r":"SIR"},"233":{"n":"Gardevoir ex","r":"SIR"},"234":{"n":"Charizard ex","r":"SIR"},"235":{"n":"Arven","r":"SIR"},"236":{"n":"Clive","r":"SIR"},"237":{"n":"Iono","r":"SIR"},"238":{"n":"Nemona","r":"SIR"},"239":{"n":"Penny","r":"SIR"}}},"sv5":{"sn":"Temporal Forces","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2024-03-22","c":{"163":{"n":"Shiftry","r":"IR"},"164":{"n":"Grotle","r":"IR"},"165":{"n":"Deerling","r":"IR"},"166":{"n":"Sawsbuck","r":"IR"},"167":{"n":"Litten","r":"IR"},"168":{"n":"Snom","r":"IR"},"169":{"n":"Charjabug","r":"IR"},"170":{"n":"Bronzor","r":"IR"},"171":{"n":"Reuniclus","r":"IR"},"172":{"n":"Cutiefly","r":"IR"},"173":{"n":"Relicanth","r":"IR"},"174":{"n":"Excadrill","r":"IR"},"175":{"n":"Mudsdale","r":"IR"},"176":{"n":"Arbok","r":"IR"},"177":{"n":"Gastly","r":"IR"},"178":{"n":"Metagross","r":"IR"},"179":{"n":"Meltan","r":"IR"},"180":{"n":"Lickitung","r":"IR"},"181":{"n":"Chatot","r":"IR"},"182":{"n":"Minccino","r":"IR"},"183":{"n":"Cinccino","r":"IR"},"184":{"n":"Drampa","r":"IR"},"203":{"n":"Iron Leaves ex","r":"SIR"},"204":{"n":"Gouging Fire ex","r":"SIR"},"205":{"n":"Walking Wake ex","r":"SIR"},"206":{"n":"Iron Crown ex","r":"SIR"},"207":{"n":"Iron Boulder ex","r":"SIR"},"208":{"n":"Raging Bolt ex","r":"SIR"},"209":{"n":"Bianca's Devotion","r":"SIR"},"210":{"n":"Eri","r":"SIR"},"211":{"n":"Morty's Conviction","r":"SIR"},"212":{"n":"Salvatore","r":"SIR"}}},"sv6":{"sn":"Twilight Masquerade","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2024-05-24","c":{"168":{"n":"Pinsir","r":"IR"},"169":{"n":"Sunflora","r":"IR"},"170":{"n":"Dipplin","r":"IR"},"171":{"n":"Poltchageist","r":"IR"},"172":{"n":"Torkoal","r":"IR"},"173":{"n":"Infernape","r":"IR"},"174":{"n":"Froslass","r":"IR"},"175":{"n":"Phione","r":"IR"},"176":{"n":"Cramorant","r":"IR"},"177":{"n":"Heliolisk","r":"IR"},"178":{"n":"Wattrel","r":"IR"},"179":{"n":"Chimecho","r":"IR"},"180":{"n":"Enamorus","r":"IR"},"181":{"n":"Hisuian Growlithe","r":"IR"},"182":{"n":"Probopass","r":"IR"},"183":{"n":"Timburr","r":"IR"},"184":{"n":"Lairon","r":"IR"},"185":{"n":"Applin","r":"IR"},"186":{"n":"Tatsugiri","r":"IR"},"187":{"n":"Chansey","r":"IR"},"188":{"n":"Eevee","r":"IR"},"210":{"n":"Sinistcha ex","r":"SIR"},"211":{"n":"Teal Mask Ogerpon ex","r":"SIR"},"212":{"n":"Hearthflame Mask Ogerpon ex","r":"SIR"},"213":{"n":"Wellspring Mask Ogerpon ex","r":"SIR"},"214":{"n":"Greninja ex","r":"SIR"},"215":{"n":"Cornerstone Mask Ogerpon ex","r":"SIR"},"216":{"n":"Bloodmoon Ursaluna ex","r":"SIR"},"217":{"n":"Carmine","r":"SIR"},"218":{"n":"Kieran","r":"SIR"},"219":{"n":"Lana's Aid","r":"SIR"},"220":{"n":"Perrin","r":"SIR"}}},"sv6pt5":{"sn":"Shrouded Fable","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2024-08-02","c":{"65":{"n":"Tapu Bulu","r":"IR"},"66":{"n":"Houndoom","r":"IR"},"67":{"n":"Horsea","r":"IR"},"68":{"n":"Duskull","r":"IR"},"69":{"n":"Dusclops","r":"IR"},"70":{"n":"Dusknoir","r":"IR"},"71":{"n":"Cresselia","r":"IR"},"72":{"n":"Munkidori","r":"IR"},"73":{"n":"Fezandipiti","r":"IR"},"74":{"n":"Okidogi","r":"IR"},"75":{"n":"Zorua","r":"IR"},"76":{"n":"Cufant","r":"IR"},"77":{"n":"Fraxure","r":"IR"},"78":{"n":"Persian","r":"IR"},"79":{"n":"Bewear","r":"IR"},"90":{"n":"Okidogi ex","r":"SIR"},"91":{"n":"Munkidori ex","r":"SIR"},"92":{"n":"Fezandipiti ex","r":"SIR"},"93":{"n":"Pecharunt ex","r":"SIR"},"94":{"n":"Cassiopeia","r":"SIR"}}},"sv7":{"sn":"Stellar Crown","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2024-09-13","c":{"143":{"n":"Bulbasaur","r":"IR"},"144":{"n":"Ledian","r":"IR"},"145":{"n":"Lileep","r":"IR"},"146":{"n":"Turtonator","r":"IR"},"147":{"n":"Raboot","r":"IR"},"148":{"n":"Squirtle","r":"IR"},"149":{"n":"Crabominable","r":"IR"},"150":{"n":"Joltik","r":"IR"},"151":{"n":"Zeraora","r":"IR"},"152":{"n":"Milcery","r":"IR"},"153":{"n":"Meditite","r":"IR"},"154":{"n":"Gulpin","r":"IR"},"155":{"n":"Archaludon","r":"IR"},"167":{"n":"Hydrapple ex","r":"SIR"},"168":{"n":"Galvantula ex","r":"SIR"},"169":{"n":"Dachsbun ex","r":"SIR"},"170":{"n":"Terapagos ex","r":"SIR"},"171":{"n":"Briar","r":"SIR"},"172":{"n":"Lacey","r":"SIR"}}},"sv8":{"sn":"Surging Sparks","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2024-11-08","c":{"192":{"n":"Exeggcute","r":"IR"},"193":{"n":"Vivillon","r":"IR"},"194":{"n":"Shiinotic","r":"IR"},"195":{"n":"Castform Sunny Form","r":"IR"},"196":{"n":"Larvesta","r":"IR"},"197":{"n":"Ceruledge","r":"IR"},"198":{"n":"Feebas","r":"IR"},"199":{"n":"Spheal","r":"IR"},"200":{"n":"Bruxish","r":"IR"},"201":{"n":"Cetitan","r":"IR"},"202":{"n":"Stunfisk","r":"IR"},"203":{"n":"Latios","r":"IR"},"204":{"n":"Mesprit","r":"IR"},"205":{"n":"Phanpy","r":"IR"},"206":{"n":"Vibrava","r":"IR"},"207":{"n":"Clobbopus","r":"IR"},"208":{"n":"Alolan Dugtrio","r":"IR"},"209":{"n":"Skarmory","r":"IR"},"210":{"n":"Flapple","r":"IR"},"211":{"n":"Appletun","r":"IR"},"212":{"n":"Slakoth","r":"IR"},"213":{"n":"Kecleon","r":"IR"},"214":{"n":"Braviary","r":"IR"},"236":{"n":"Durant ex","r":"SIR"},"237":{"n":"Milotic ex","r":"SIR"},"238":{"n":"Pikachu ex","r":"SIR"},"239":{"n":"Latias ex","r":"SIR"},"240":{"n":"Hydreigon ex","r":"SIR"},"241":{"n":"Archaludon ex","r":"SIR"},"242":{"n":"Alolan Exeggutor ex","r":"SIR"},"243":{"n":"Clemont's Quick Wit","r":"SIR"},"244":{"n":"Drayton","r":"SIR"},"245":{"n":"Jasmine's Gaze","r":"SIR"},"246":{"n":"Lisia's Appeal","r":"SIR"}}},"sv8pt5":{"sn":"Prismatic Evolutions","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2025-01-17","c":{"144":{"n":"Leafeon ex","r":"SIR"},"145":{"n":"Teal Mask Ogerpon ex","r":"SIR"},"146":{"n":"Flareon ex","r":"SIR"},"147":{"n":"Ceruledge ex","r":"SIR"},"148":{"n":"Hearthflame Mask Ogerpon ex","r":"SIR"},"149":{"n":"Vaporeon ex","r":"SIR"},"150":{"n":"Glaceon ex","r":"SIR"},"151":{"n":"Palafin ex","r":"SIR"},"152":{"n":"Wellspring Mask Ogerpon ex","r":"SIR"},"153":{"n":"Jolteon ex","r":"SIR"},"154":{"n":"Iron Hands ex","r":"SIR"},"155":{"n":"Espeon ex","r":"SIR"},"156":{"n":"Sylveon ex","r":"SIR"},"157":{"n":"Iron Valiant ex","r":"SIR"},"158":{"n":"Iron Crown ex","r":"SIR"},"159":{"n":"Sandy Shocks ex","r":"SIR"},"160":{"n":"Cornerstone Mask Ogerpon ex","r":"SIR"},"161":{"n":"Umbreon ex","r":"SIR"},"162":{"n":"Roaring Moon ex","r":"SIR"},"163":{"n":"Pecharunt ex","r":"SIR"},"164":{"n":"Gholdengo ex","r":"SIR"},"165":{"n":"Dragapult ex","r":"SIR"},"166":{"n":"Raging Bolt ex","r":"SIR"},"167":{"n":"Eevee ex","r":"SIR"},"168":{"n":"Bloodmoon Ursaluna ex","r":"SIR"},"169":{"n":"Terapagos ex","r":"SIR"},"170":{"n":"Amarys","r":"SIR"},"171":{"n":"Crispin","r":"SIR"},"172":{"n":"Drayton","r":"SIR"},"173":{"n":"Janine's Secret Art","r":"SIR"},"174":{"n":"Kieran","r":"SIR"},"175":{"n":"Lacey","r":"SIR"}}},"sv9":{"sn":"Journey Together","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2025-03-28","c":{"160":{"n":"Maractus","r":"IR"},"161":{"n":"Articuno","r":"IR"},"162":{"n":"Wailord","r":"IR"},"163":{"n":"Iono's Kilowattrel","r":"IR"},"164":{"n":"Lillie's Ribombee","r":"IR"},"165":{"n":"Swinub","r":"IR"},"166":{"n":"Lycanroc","r":"IR"},"167":{"n":"N's Reshiram","r":"IR"},"168":{"n":"Furret","r":"IR"},"169":{"n":"Noibat","r":"IR"},"170":{"n":"Hop's Wooloo","r":"IR"},"182":{"n":"Volcanion ex","r":"SIR"},"183":{"n":"Iono's Bellibolt ex","r":"SIR"},"184":{"n":"Lillie's Clefairy ex","r":"SIR"},"185":{"n":"N's Zoroark ex","r":"SIR"},"186":{"n":"Hop's Zacian ex","r":"SIR"},"187":{"n":"Salamence ex","r":"SIR"}}},"sv10":{"sn":"Destined Rivals","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2025-05-30","c":{"183":{"n":"Yanma","r":"IR"},"184":{"n":"Cynthia's Roserade","r":"IR"},"185":{"n":"Shaymin","r":"IR"},"186":{"n":"Crustle","r":"IR"},"187":{"n":"Team Rocket's Spidops","r":"IR"},"188":{"n":"Hydrapple","r":"IR"},"189":{"n":"Rapidash","r":"IR"},"190":{"n":"Ethan's Typhlosion","r":"IR"},"191":{"n":"Team Rocket's Houndoom","r":"IR"},"192":{"n":"Blaziken","r":"IR"},"193":{"n":"Misty's Psyduck","r":"IR"},"194":{"n":"Misty's Lapras","r":"IR"},"195":{"n":"Clamperl","r":"IR"},"196":{"n":"Electrike","r":"IR"},"197":{"n":"Rotom","r":"IR"},"198":{"n":"Team Rocket's Orbeetle","r":"IR"},"199":{"n":"Team Rocket's Weezing","r":"IR"},"200":{"n":"Team Rocket's Murkrow","r":"IR"},"201":{"n":"Zamazenta","r":"IR"},"202":{"n":"Team Rocket's Raticate","r":"IR"},"203":{"n":"Team Rocket's Meowth","r":"IR"},"204":{"n":"Kangaskhan","r":"IR"},"205":{"n":"Arven's Greedent","r":"IR"},"228":{"n":"Yanmega ex","r":"SIR"},"229":{"n":"Team Rocket's Moltres ex","r":"SIR"},"230":{"n":"Ethan's Ho-Oh ex","r":"SIR"},"231":{"n":"Team Rocket's Mewtwo ex","r":"SIR"},"232":{"n":"Cynthia's Garchomp ex","r":"SIR"},"233":{"n":"Team Rocket's Nidoking ex","r":"SIR"},"234":{"n":"Team Rocket's Crobat ex","r":"SIR"},"235":{"n":"Arven's Mabosstiff ex","r":"SIR"},"236":{"n":"Ethan's Adventure","r":"SIR"},"237":{"n":"Team Rocket's Ariana","r":"SIR"},"238":{"n":"Team Rocket's Giovanni","r":"SIR"}}},"zsv10pt5":{"sn":"Black Bolt","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2025-07-18","c":{"87":{"n":"Snivy","r":"IR"},"88":{"n":"Servine","r":"IR"},"89":{"n":"Pansage","r":"IR"},"90":{"n":"Simisage","r":"IR"},"91":{"n":"Petilil","r":"IR"},"92":{"n":"Lilligant","r":"IR"},"93":{"n":"Maractus","r":"IR"},"94":{"n":"Karrablast","r":"IR"},"95":{"n":"Foongus","r":"IR"},"96":{"n":"Amoonguss","r":"IR"},"97":{"n":"Darumaka","r":"IR"},"98":{"n":"Darmanitan","r":"IR"},"99":{"n":"Larvesta","r":"IR"},"100":{"n":"Volcarona","r":"IR"},"101":{"n":"Panpour","r":"IR"},"102":{"n":"Simipour","r":"IR"},"103":{"n":"Tympole","r":"IR"},"104":{"n":"Palpitoad","r":"IR"},"105":{"n":"Seismitoad","r":"IR"},"106":{"n":"Tirtouga","r":"IR"},"107":{"n":"Carracosta","r":"IR"},"108":{"n":"Alomomola","r":"IR"},"109":{"n":"Cubchoo","r":"IR"},"110":{"n":"Beartic","r":"IR"},"111":{"n":"Cryogonal","r":"IR"},"112":{"n":"Emolga","r":"IR"},"113":{"n":"Tynamo","r":"IR"},"114":{"n":"Eelektrik","r":"IR"},"115":{"n":"Eelektross","r":"IR"},"116":{"n":"Munna","r":"IR"},"117":{"n":"Musharna","r":"IR"},"118":{"n":"Solosis","r":"IR"},"119":{"n":"Duosion","r":"IR"},"120":{"n":"Elgyem","r":"IR"},"121":{"n":"Beheeyem","r":"IR"},"122":{"n":"Golett","r":"IR"},"123":{"n":"Golurk","r":"IR"},"124":{"n":"Drilbur","r":"IR"},"125":{"n":"Timburr","r":"IR"},"126":{"n":"Gurdurr","r":"IR"},"127":{"n":"Conkeldurr","r":"IR"},"128":{"n":"Throh","r":"IR"},"129":{"n":"Dwebble","r":"IR"},"130":{"n":"Crustle","r":"IR"},"131":{"n":"Landorus","r":"IR"},"132":{"n":"Venipede","r":"IR"},"133":{"n":"Whirlipede","r":"IR"},"134":{"n":"Scolipede","r":"IR"},"135":{"n":"Sandile","r":"IR"},"136":{"n":"Krokorok","r":"IR"},"137":{"n":"Krookodile","r":"IR"},"138":{"n":"Escavalier","r":"IR"},"139":{"n":"Klink","r":"IR"},"140":{"n":"Klang","r":"IR"},"141":{"n":"Klinklang","r":"IR"},"142":{"n":"Pawniard","r":"IR"},"143":{"n":"Bisharp","r":"IR"},"144":{"n":"Cobalion","r":"IR"},"145":{"n":"Axew","r":"IR"},"146":{"n":"Fraxure","r":"IR"},"147":{"n":"Haxorus","r":"IR"},"148":{"n":"Pidove","r":"IR"},"149":{"n":"Tranquill","r":"IR"},"150":{"n":"Unfezant","r":"IR"},"151":{"n":"Audino","r":"IR"},"152":{"n":"Minccino","r":"IR"},"153":{"n":"Cinccino","r":"IR"},"154":{"n":"Rufflet","r":"IR"},"155":{"n":"Braviary","r":"IR"},"164":{"n":"Serperior ex","r":"SIR"},"165":{"n":"Kyurem ex","r":"SIR"},"166":{"n":"Zekrom ex","r":"SIR"},"167":{"n":"Meloetta ex","r":"SIR"},"168":{"n":"Excadrill ex","r":"SIR"},"169":{"n":"Genesect ex","r":"SIR"},"170":{"n":"N's Plan","r":"SIR"}}},"rsv10pt5":{"sn":"White Flare","sr":"Scarlet & Violet","sd":"Scarlet & Violet","rd":"2025-07-18","c":{"87":{"n":"Sewaddle","r":"IR"},"88":{"n":"Swadloon","r":"IR"},"89":{"n":"Leavanny","r":"IR"},"90":{"n":"Cottonee","r":"IR"},"91":{"n":"Deerling","r":"IR"},"92":{"n":"Sawsbuck","r":"IR"},"93":{"n":"Shelmet","r":"IR"},"94":{"n":"Accelgor","r":"IR"},"95":{"n":"Virizion","r":"IR"},"96":{"n":"Tepig","r":"IR"},"97":{"n":"Pignite","r":"IR"},"98":{"n":"Emboar","r":"IR"},"99":{"n":"Pansear","r":"IR"},"100":{"n":"Simisear","r":"IR"},"101":{"n":"Litwick","r":"IR"},"102":{"n":"Lampent","r":"IR"},"103":{"n":"Chandelure","r":"IR"},"104":{"n":"Heatmor","r":"IR"},"105":{"n":"Oshawott","r":"IR"},"106":{"n":"Dewott","r":"IR"},"107":{"n":"Samurott","r":"IR"},"108":{"n":"Basculin","r":"IR"},"109":{"n":"Ducklett","r":"IR"},"110":{"n":"Swanna","r":"IR"},"111":{"n":"Vanillite","r":"IR"},"112":{"n":"Vanillish","r":"IR"},"113":{"n":"Vanilluxe","r":"IR"},"114":{"n":"Blitzle","r":"IR"},"115":{"n":"Zebstrika","r":"IR"},"116":{"n":"Joltik","r":"IR"},"117":{"n":"Galvantula","r":"IR"},"118":{"n":"Stunfisk","r":"IR"},"119":{"n":"Woobat","r":"IR"},"120":{"n":"Swoobat","r":"IR"},"121":{"n":"Sigilyph","r":"IR"},"122":{"n":"Yamask","r":"IR"},"123":{"n":"Cofagrigus","r":"IR"},"124":{"n":"Gothita","r":"IR"},"125":{"n":"Gothorita","r":"IR"},"126":{"n":"Frillish","r":"IR"},"127":{"n":"Roggenrola","r":"IR"},"128":{"n":"Boldore","r":"IR"},"129":{"n":"Gigalith","r":"IR"},"130":{"n":"Sawk","r":"IR"},"132":{"n":"Archeops","r":"IR"},"133":{"n":"Mienfoo","r":"IR"},"134":{"n":"Mienshao","r":"IR"},"135":{"n":"Terrakion","r":"IR"},"136":{"n":"Purrloin","r":"IR"},"137":{"n":"Liepard","r":"IR"},"138":{"n":"Scraggy","r":"IR"},"139":{"n":"Scrafty","r":"IR"},"140":{"n":"Trubbish","r":"IR"},"141":{"n":"Garbodor","r":"IR"},"142":{"n":"Zorua","r":"IR"},"143":{"n":"Zoroark","r":"IR"},"144":{"n":"Vullaby","r":"IR"},"145":{"n":"Mandibuzz","r":"IR"},"146":{"n":"Deino","r":"IR"},"147":{"n":"Zweilous","r":"IR"},"148":{"n":"Ferroseed","r":"IR"},"149":{"n":"Ferrothorn","r":"IR"},"150":{"n":"Durant","r":"IR"},"151":{"n":"Druddigon","r":"IR"},"152":{"n":"Patrat","r":"IR"},"153":{"n":"Watchog","r":"IR"},"154":{"n":"Lillipup","r":"IR"},"155":{"n":"Herdier","r":"IR"},"156":{"n":"Stoutland","r":"IR"},"165":{"n":"Whimsicott ex","r":"SIR"},"166":{"n":"Reshiram ex","r":"SIR"},"167":{"n":"Keldeo ex","r":"SIR"},"168":{"n":"Jellicent ex","r":"SIR"},"169":{"n":"Hydreigon ex","r":"SIR"},"170":{"n":"Bouffalant ex","r":"SIR"},"171":{"n":"Hilda","r":"SIR"}}},"base1":{"sn":"Base","sr":"Base","sd":"Base","rd":"1999-01-09","c":{"1":{"n":"Alakazam","r":"Holo"},"2":{"n":"Blastoise","r":"Holo"},"3":{"n":"Chansey","r":"Holo"},"4":{"n":"Charizard","r":"Holo"},"5":{"n":"Clefairy","r":"Holo"},"6":{"n":"Gyarados","r":"Holo"},"7":{"n":"Hitmonchan","r":"Holo"},"8":{"n":"Machamp","r":"Holo"},"9":{"n":"Magneton","r":"Holo"},"10":{"n":"Mewtwo","r":"Holo"},"11":{"n":"Nidoking","r":"Holo"},"12":{"n":"Ninetales","r":"Holo"},"13":{"n":"Poliwrath","r":"Holo"},"14":{"n":"Raichu","r":"Holo"},"15":{"n":"Venusaur","r":"Holo"},"16":{"n":"Zapdos","r":"Holo"}}},"base2":{"sn":"Jungle","sr":"Base","sd":"Base","rd":"1999-06-16","c":{"1":{"n":"Clefable","r":"Holo"},"2":{"n":"Electrode","r":"Holo"},"3":{"n":"Flareon","r":"Holo"},"4":{"n":"Jolteon","r":"Holo"},"5":{"n":"Kangaskhan","r":"Holo"},"6":{"n":"Mr. Mime","r":"Holo"},"7":{"n":"Nidoqueen","r":"Holo"},"8":{"n":"Pidgeot","r":"Holo"},"9":{"n":"Pinsir","r":"Holo"},"10":{"n":"Scyther","r":"Holo"},"11":{"n":"Snorlax","r":"Holo"},"12":{"n":"Vaporeon","r":"Holo"},"13":{"n":"Venomoth","r":"Holo"},"14":{"n":"Victreebel","r":"Holo"},"15":{"n":"Vileplume","r":"Holo"},"16":{"n":"Wigglytuff","r":"Holo"}}},"base3":{"sn":"Fossil","sr":"Base","sd":"Base","rd":"1999-10-10","c":{"1":{"n":"Aerodactyl","r":"Holo"},"2":{"n":"Articuno","r":"Holo"},"3":{"n":"Ditto","r":"Holo"},"4":{"n":"Dragonite","r":"Holo"},"5":{"n":"Gengar","r":"Holo"},"6":{"n":"Haunter","r":"Holo"},"7":{"n":"Hitmonlee","r":"Holo"},"8":{"n":"Hypno","r":"Holo"},"9":{"n":"Kabutops","r":"Holo"},"10":{"n":"Lapras","r":"Holo"},"11":{"n":"Magneton","r":"Holo"},"12":{"n":"Moltres","r":"Holo"},"13":{"n":"Muk","r":"Holo"},"14":{"n":"Raichu","r":"Holo"},"15":{"n":"Zapdos","r":"Holo"}}},"base4":{"sn":"Base Set 2","sr":"Base","sd":"Base","rd":"2000-02-24","c":{"1":{"n":"Alakazam","r":"Holo"},"2":{"n":"Blastoise","r":"Holo"},"3":{"n":"Chansey","r":"Holo"},"4":{"n":"Charizard","r":"Holo"},"5":{"n":"Clefable","r":"Holo"},"6":{"n":"Clefairy","r":"Holo"},"7":{"n":"Gyarados","r":"Holo"},"8":{"n":"Hitmonchan","r":"Holo"},"9":{"n":"Magneton","r":"Holo"},"10":{"n":"Mewtwo","r":"Holo"},"11":{"n":"Nidoking","r":"Holo"},"12":{"n":"Nidoqueen","r":"Holo"},"13":{"n":"Ninetales","r":"Holo"},"14":{"n":"Pidgeot","r":"Holo"},"15":{"n":"Poliwrath","r":"Holo"},"16":{"n":"Raichu","r":"Holo"},"17":{"n":"Scyther","r":"Holo"},"18":{"n":"Venusaur","r":"Holo"},"19":{"n":"Wigglytuff","r":"Holo"},"20":{"n":"Zapdos","r":"Holo"}}},"base5":{"sn":"Team Rocket","sr":"Base","sd":"Base","rd":"2000-04-24","c":{"1":{"n":"Dark Alakazam","r":"Holo"},"2":{"n":"Dark Arbok","r":"Holo"},"3":{"n":"Dark Blastoise","r":"Holo"},"4":{"n":"Dark Charizard","r":"Holo"},"5":{"n":"Dark Dragonite","r":"Holo"},"6":{"n":"Dark Dugtrio","r":"Holo"},"7":{"n":"Dark Golbat","r":"Holo"},"8":{"n":"Dark Gyarados","r":"Holo"},"9":{"n":"Dark Hypno","r":"Holo"},"10":{"n":"Dark Machamp","r":"Holo"},"11":{"n":"Dark Magneton","r":"Holo"},"12":{"n":"Dark Slowbro","r":"Holo"},"13":{"n":"Dark Vileplume","r":"Holo"},"14":{"n":"Dark Weezing","r":"Holo"},"15":{"n":"Here Comes Team Rocket!","r":"Holo"},"16":{"n":"Rocket's Sneak Attack","r":"Holo"},"17":{"n":"Rainbow Energy","r":"Holo"}}},"neo1":{"sn":"Neo Genesis","sr":"Neo","sd":"Neo","rd":"2000-12-16","c":{"1":{"n":"Ampharos","r":"Holo"},"2":{"n":"Azumarill","r":"Holo"},"3":{"n":"Bellossom","r":"Holo"},"4":{"n":"Feraligatr","r":"Holo"},"5":{"n":"Feraligatr","r":"Holo"},"6":{"n":"Heracross","r":"Holo"},"7":{"n":"Jumpluff","r":"Holo"},"8":{"n":"Kingdra","r":"Holo"},"9":{"n":"Lugia","r":"Holo"},"10":{"n":"Meganium","r":"Holo"},"11":{"n":"Meganium","r":"Holo"},"12":{"n":"Pichu","r":"Holo"},"13":{"n":"Skarmory","r":"Holo"},"14":{"n":"Slowking","r":"Holo"},"15":{"n":"Steelix","r":"Holo"},"16":{"n":"Togetic","r":"Holo"},"17":{"n":"Typhlosion","r":"Holo"},"18":{"n":"Typhlosion","r":"Holo"},"19":{"n":"Metal Energy","r":"Holo"}}},"neo2":{"sn":"Neo Discovery","sr":"Neo","sd":"Neo","rd":"2001-06-01","c":{"1":{"n":"Espeon","r":"Holo"},"2":{"n":"Forretress","r":"Holo"},"3":{"n":"Hitmontop","r":"Holo"},"4":{"n":"Houndoom","r":"Holo"},"5":{"n":"Houndour","r":"Holo"},"6":{"n":"Kabutops","r":"Holo"},"7":{"n":"Magnemite","r":"Holo"},"8":{"n":"Politoed","r":"Holo"},"9":{"n":"Poliwrath","r":"Holo"},"10":{"n":"Scizor","r":"Holo"},"11":{"n":"Smeargle","r":"Holo"},"12":{"n":"Tyranitar","r":"Holo"},"13":{"n":"Umbreon","r":"Holo"},"14":{"n":"Unown [A]","r":"Holo"},"15":{"n":"Ursaring","r":"Holo"},"16":{"n":"Wobbuffet","r":"Holo"},"17":{"n":"Yanma","r":"Holo"}}},"neo3":{"sn":"Neo Revelation","sr":"Neo","sd":"Neo","rd":"2001-09-21","c":{"1":{"n":"Ampharos","r":"Holo"},"2":{"n":"Blissey","r":"Holo"},"3":{"n":"Celebi","r":"Holo"},"4":{"n":"Crobat","r":"Holo"},"5":{"n":"Delibird","r":"Holo"},"6":{"n":"Entei","r":"Holo"},"7":{"n":"Ho-oh","r":"Holo"},"8":{"n":"Houndoom","r":"Holo"},"9":{"n":"Jumpluff","r":"Holo"},"10":{"n":"Magneton","r":"Holo"},"11":{"n":"Misdreavus","r":"Holo"},"12":{"n":"Porygon2","r":"Holo"},"13":{"n":"Raikou","r":"Holo"},"14":{"n":"Suicune","r":"Holo"}}},"neo4":{"sn":"Neo Destiny","sr":"Neo","sd":"Neo","rd":"2002-02-28","c":{"1":{"n":"Dark Ampharos","r":"Holo"},"2":{"n":"Dark Crobat","r":"Holo"},"3":{"n":"Dark Donphan","r":"Holo"},"4":{"n":"Dark Espeon","r":"Holo"},"5":{"n":"Dark Feraligatr","r":"Holo"},"6":{"n":"Dark Gengar","r":"Holo"},"7":{"n":"Dark Houndoom","r":"Holo"},"8":{"n":"Dark Porygon2","r":"Holo"},"9":{"n":"Dark Scizor","r":"Holo"},"10":{"n":"Dark Typhlosion","r":"Holo"},"11":{"n":"Dark Tyranitar","r":"Holo"},"12":{"n":"Light Arcanine","r":"Holo"},"13":{"n":"Light Azumarill","r":"Holo"},"14":{"n":"Light Dragonite","r":"Holo"},"15":{"n":"Light Togetic","r":"Holo"},"16":{"n":"Miracle Energy","r":"Holo"}}},"ecard1":{"sn":"Expedition Base Set","sr":"E-Card","sd":"E-Card","rd":"2002-09-15","c":{"1":{"n":"Alakazam","r":"Holo"},"2":{"n":"Ampharos","r":"Holo"},"3":{"n":"Arbok","r":"Holo"},"4":{"n":"Blastoise","r":"Holo"},"5":{"n":"Butterfree","r":"Holo"},"6":{"n":"Charizard","r":"Holo"},"7":{"n":"Clefable","r":"Holo"},"8":{"n":"Cloyster","r":"Holo"},"9":{"n":"Dragonite","r":"Holo"},"10":{"n":"Dugtrio","r":"Holo"},"11":{"n":"Fearow","r":"Holo"},"12":{"n":"Feraligatr","r":"Holo"},"13":{"n":"Gengar","r":"Holo"},"14":{"n":"Golem","r":"Holo"},"15":{"n":"Kingler","r":"Holo"},"16":{"n":"Machamp","r":"Holo"},"17":{"n":"Magby","r":"Holo"},"18":{"n":"Meganium","r":"Holo"},"19":{"n":"Mew","r":"Holo"},"20":{"n":"Mewtwo","r":"Holo"},"21":{"n":"Ninetales","r":"Holo"},"22":{"n":"Pichu","r":"Holo"},"23":{"n":"Pidgeot","r":"Holo"},"24":{"n":"Poliwrath","r":"Holo"},"25":{"n":"Raichu","r":"Holo"},"26":{"n":"Rapidash","r":"Holo"},"27":{"n":"Skarmory","r":"Holo"},"28":{"n":"Typhlosion","r":"Holo"},"29":{"n":"Tyranitar","r":"Holo"},"30":{"n":"Venusaur","r":"Holo"},"31":{"n":"Vileplume","r":"Holo"},"32":{"n":"Weezing","r":"Holo"}}},"ecard2":{"sn":"Aquapolis","sr":"E-Card","sd":"E-Card","rd":"2003-01-15","c":{"H1":{"n":"Ampharos","r":"Holo"},"H10":{"n":"Exeggutor","r":"Holo"},"H11":{"n":"Houndoom","r":"Holo"},"H12":{"n":"Hypno","r":"Holo"},"H13":{"n":"Jumpluff","r":"Holo"},"H14":{"n":"Kingdra","r":"Holo"},"H15":{"n":"Lanturn","r":"Holo"},"H16":{"n":"Magneton","r":"Holo"},"H17":{"n":"Muk","r":"Holo"},"H18":{"n":"Nidoking","r":"Holo"},"H19":{"n":"Ninetales","r":"Holo"},"H2":{"n":"Arcanine","r":"Holo"},"H20":{"n":"Octillery","r":"Holo"},"H21":{"n":"Scizor","r":"Holo"},"H22":{"n":"Slowking","r":"Holo"},"H23":{"n":"Steelix","r":"Holo"},"H24":{"n":"Sudowoodo","r":"Holo"},"H25":{"n":"Suicune","r":"Holo"},"H26":{"n":"Tentacruel","r":"Holo"},"H27":{"n":"Togetic","r":"Holo"},"H28":{"n":"Tyranitar","r":"Holo"},"H29":{"n":"Umbreon","r":"Holo"},"H3":{"n":"Ariados","r":"Holo"},"H30":{"n":"Victreebel","r":"Holo"},"H31":{"n":"Vileplume","r":"Holo"},"H32":{"n":"Zapdos","r":"Holo"},"H4":{"n":"Azumarill","r":"Holo"},"H5":{"n":"Bellossom","r":"Holo"},"H6":{"n":"Blissey","r":"Holo"},"H7":{"n":"Electrode","r":"Holo"},"H8":{"n":"Entei","r":"Holo"},"H9":{"n":"Espeon","r":"Holo"}}},"ecard3":{"sn":"Skyridge","sr":"E-Card","sd":"E-Card","rd":"2003-05-12","c":{"H1":{"n":"Alakazam","r":"Holo"},"H10":{"n":"Gyarados","r":"Holo"},"H11":{"n":"Houndoom","r":"Holo"},"H12":{"n":"Jolteon","r":"Holo"},"H13":{"n":"Kabutops","r":"Holo"},"H14":{"n":"Ledian","r":"Holo"},"H15":{"n":"Machamp","r":"Holo"},"H16":{"n":"Magcargo","r":"Holo"},"H17":{"n":"Magcargo","r":"Holo"},"H18":{"n":"Magneton","r":"Holo"},"H19":{"n":"Magneton","r":"Holo"},"H2":{"n":"Arcanine","r":"Holo"},"H20":{"n":"Moltres","r":"Holo"},"H21":{"n":"Nidoqueen","r":"Holo"},"H22":{"n":"Piloswine","r":"Holo"},"H23":{"n":"Politoed","r":"Holo"},"H24":{"n":"Poliwrath","r":"Holo"},"H25":{"n":"Raichu","r":"Holo"},"H26":{"n":"Raikou","r":"Holo"},"H27":{"n":"Rhydon","r":"Holo"},"H28":{"n":"Starmie","r":"Holo"},"H29":{"n":"Steelix","r":"Holo"},"H3":{"n":"Articuno","r":"Holo"},"H30":{"n":"Umbreon","r":"Holo"},"H31":{"n":"Vaporeon","r":"Holo"},"H32":{"n":"Xatu","r":"Holo"},"H4":{"n":"Beedrill","r":"Holo"},"H5":{"n":"Crobat","r":"Holo"},"H6":{"n":"Dewgong","r":"Holo"},"H7":{"n":"Flareon","r":"Holo"},"H8":{"n":"Forretress","r":"Holo"},"H9":{"n":"Gengar","r":"Holo"}}},"ex1":{"sn":"Ruby & Sapphire","sr":"EX","sd":"EX","rd":"2003-07-01","c":{"1":{"n":"Aggron","r":"Holo"},"2":{"n":"Beautifly","r":"Holo"},"3":{"n":"Blaziken","r":"Holo"},"4":{"n":"Camerupt","r":"Holo"},"5":{"n":"Delcatty","r":"Holo"},"6":{"n":"Dustox","r":"Holo"},"7":{"n":"Gardevoir","r":"Holo"},"8":{"n":"Hariyama","r":"Holo"},"9":{"n":"Manectric","r":"Holo"},"10":{"n":"Mightyena","r":"Holo"},"11":{"n":"Sceptile","r":"Holo"},"12":{"n":"Slaking","r":"Holo"},"13":{"n":"Swampert","r":"Holo"},"14":{"n":"Wailord","r":"Holo"},"96":{"n":"Chansey ex","r":"Holo"},"97":{"n":"Electabuzz ex","r":"Holo"},"98":{"n":"Hitmonchan ex","r":"Holo"},"99":{"n":"Lapras ex","r":"Holo"},"100":{"n":"Magmar ex","r":"Holo"},"101":{"n":"Mewtwo ex","r":"Holo"},"102":{"n":"Scyther ex","r":"Holo"},"103":{"n":"Sneasel ex","r":"Holo"}}},"ex2":{"sn":"Sandstorm","sr":"EX","sd":"EX","rd":"2003-09-18","c":{"1":{"n":"Armaldo","r":"Holo"},"2":{"n":"Cacturne","r":"Holo"},"3":{"n":"Cradily","r":"Holo"},"4":{"n":"Dusclops","r":"Holo"},"5":{"n":"Flareon","r":"Holo"},"6":{"n":"Jolteon","r":"Holo"},"7":{"n":"Ludicolo","r":"Holo"},"8":{"n":"Lunatone","r":"Holo"},"9":{"n":"Mawile","r":"Holo"},"10":{"n":"Sableye","r":"Holo"},"11":{"n":"Seviper","r":"Holo"},"12":{"n":"Shiftry","r":"Holo"},"13":{"n":"Solrock","r":"Holo"},"14":{"n":"Zangoose","r":"Holo"},"94":{"n":"Aerodactyl ex","r":"Holo"},"95":{"n":"Aggron ex","r":"Holo"},"96":{"n":"Gardevoir ex","r":"Holo"},"97":{"n":"Kabutops ex","r":"Holo"},"98":{"n":"Raichu ex","r":"Holo"},"99":{"n":"Typhlosion ex","r":"Holo"},"100":{"n":"Wailord ex","r":"Holo"}}},"ex3":{"sn":"Dragon","sr":"EX","sd":"EX","rd":"2003-11-24","c":{"1":{"n":"Absol","r":"Holo"},"2":{"n":"Altaria","r":"Holo"},"3":{"n":"Crawdaunt","r":"Holo"},"4":{"n":"Flygon","r":"Holo"},"5":{"n":"Golem","r":"Holo"},"6":{"n":"Grumpig","r":"Holo"},"7":{"n":"Minun","r":"Holo"},"8":{"n":"Plusle","r":"Holo"},"9":{"n":"Roselia","r":"Holo"},"10":{"n":"Salamence","r":"Holo"},"11":{"n":"Shedinja","r":"Holo"},"12":{"n":"Torkoal","r":"Holo"},"89":{"n":"Ampharos ex","r":"Holo"},"90":{"n":"Dragonite ex","r":"Holo"},"91":{"n":"Golem ex","r":"Holo"},"92":{"n":"Kingdra ex","r":"Holo"},"93":{"n":"Latias ex","r":"Holo"},"94":{"n":"Latios ex","r":"Holo"},"95":{"n":"Magcargo ex","r":"Holo"},"96":{"n":"Muk ex","r":"Holo"},"97":{"n":"Rayquaza ex","r":"Holo"}}},"ex4":{"sn":"Team Magma vs Team Aqua","sr":"EX","sd":"EX","rd":"2004-03-01","c":{"1":{"n":"Team Aqua's Cacturne","r":"Holo"},"2":{"n":"Team Aqua's Crawdaunt","r":"Holo"},"3":{"n":"Team Aqua's Kyogre","r":"Holo"},"4":{"n":"Team Aqua's Manectric","r":"Holo"},"5":{"n":"Team Aqua's Sharpedo","r":"Holo"},"6":{"n":"Team Aqua's Walrein","r":"Holo"},"7":{"n":"Team Magma's Aggron","r":"Holo"},"8":{"n":"Team Magma's Claydol","r":"Holo"},"9":{"n":"Team Magma's Groudon","r":"Holo"},"10":{"n":"Team Magma's Houndoom","r":"Holo"},"11":{"n":"Team Magma's Rhydon","r":"Holo"},"12":{"n":"Team Magma's Torkoal","r":"Holo"},"89":{"n":"Blaziken ex","r":"Holo"},"90":{"n":"Cradily ex","r":"Holo"},"91":{"n":"Entei ex","r":"Holo"},"92":{"n":"Raikou ex","r":"Holo"},"93":{"n":"Sceptile ex","r":"Holo"},"94":{"n":"Suicune ex","r":"Holo"},"95":{"n":"Swampert ex","r":"Holo"}}},"ex5":{"sn":"Hidden Legends","sr":"EX","sd":"EX","rd":"2004-06-01","c":{"1":{"n":"Banette","r":"Holo"},"2":{"n":"Claydol","r":"Holo"},"3":{"n":"Crobat","r":"Holo"},"4":{"n":"Dark Celebi","r":"Holo"},"5":{"n":"Electrode","r":"Holo"},"6":{"n":"Exploud","r":"Holo"},"7":{"n":"Heracross","r":"Holo"},"8":{"n":"Jirachi","r":"Holo"},"9":{"n":"Machamp","r":"Holo"},"10":{"n":"Medicham","r":"Holo"},"11":{"n":"Metagross","r":"Holo"},"12":{"n":"Milotic","r":"Holo"},"13":{"n":"Pinsir","r":"Holo"},"14":{"n":"Shiftry","r":"Holo"},"15":{"n":"Walrein","r":"Holo"},"93":{"n":"Groudon ex","r":"Holo"},"94":{"n":"Kyogre ex","r":"Holo"},"95":{"n":"Metagross ex","r":"Holo"},"96":{"n":"Ninetales ex","r":"Holo"},"97":{"n":"Regice ex","r":"Holo"},"98":{"n":"Regirock ex","r":"Holo"},"99":{"n":"Registeel ex","r":"Holo"},"100":{"n":"Vileplume ex","r":"Holo"},"101":{"n":"Wigglytuff ex","r":"Holo"}}},"ex6":{"sn":"FireRed & LeafGreen","sr":"EX","sd":"EX","rd":"2004-09-01","c":{"1":{"n":"Beedrill","r":"Holo"},"2":{"n":"Butterfree","r":"Holo"},"3":{"n":"Dewgong","r":"Holo"},"4":{"n":"Ditto","r":"Holo"},"5":{"n":"Exeggutor","r":"Holo"},"6":{"n":"Kangaskhan","r":"Holo"},"7":{"n":"Marowak","r":"Holo"},"8":{"n":"Nidoking","r":"Holo"},"9":{"n":"Nidoqueen","r":"Holo"},"10":{"n":"Pidgeot","r":"Holo"},"11":{"n":"Poliwrath","r":"Holo"},"12":{"n":"Raichu","r":"Holo"},"13":{"n":"Rapidash","r":"Holo"},"14":{"n":"Slowbro","r":"Holo"},"15":{"n":"Snorlax","r":"Holo"},"16":{"n":"Tauros","r":"Holo"},"17":{"n":"Victreebel","r":"Holo"},"104":{"n":"Blastoise ex","r":"Holo"},"105":{"n":"Charizard ex","r":"Holo"},"106":{"n":"Clefable ex","r":"Holo"},"107":{"n":"Electrode ex","r":"Holo"},"108":{"n":"Gengar ex","r":"Holo"},"109":{"n":"Gyarados ex","r":"Holo"},"110":{"n":"Mr. Mime ex","r":"Holo"},"111":{"n":"Mr. Mime ex","r":"Holo"},"112":{"n":"Venusaur ex","r":"Holo"}}},"ex7":{"sn":"Team Rocket Returns","sr":"EX","sd":"EX","rd":"2004-11-01","c":{"1":{"n":"Azumarill","r":"Holo"},"2":{"n":"Dark Ampharos","r":"Holo"},"3":{"n":"Dark Crobat","r":"Holo"},"4":{"n":"Dark Electrode","r":"Holo"},"5":{"n":"Dark Houndoom","r":"Holo"},"6":{"n":"Dark Hypno","r":"Holo"},"7":{"n":"Dark Marowak","r":"Holo"},"8":{"n":"Dark Octillery","r":"Holo"},"9":{"n":"Dark Slowking","r":"Holo"},"10":{"n":"Dark Steelix","r":"Holo"},"11":{"n":"Jumpluff","r":"Holo"},"12":{"n":"Kingdra","r":"Holo"},"13":{"n":"Piloswine","r":"Holo"},"14":{"n":"Togetic","r":"Holo"},"96":{"n":"Rocket's Articuno ex","r":"Holo"},"97":{"n":"Rocket's Entei ex","r":"Holo"},"98":{"n":"Rocket's Hitmonchan ex","r":"Holo"},"99":{"n":"Rocket's Mewtwo ex","r":"Holo"},"100":{"n":"Rocket's Moltres ex","r":"Holo"},"101":{"n":"Rocket's Scizor ex","r":"Holo"},"102":{"n":"Rocket's Scyther ex","r":"Holo"},"103":{"n":"Rocket's Sneasel ex","r":"Holo"},"104":{"n":"Rocket's Snorlax ex","r":"Holo"},"105":{"n":"Rocket's Suicune ex","r":"Holo"},"106":{"n":"Rocket's Zapdos ex","r":"Holo"},"107":{"n":"Mudkip ★","r":"Holo"},"108":{"n":"Torchic ★","r":"Holo"},"109":{"n":"Treecko ★","r":"Holo"}}},"ex8":{"sn":"Deoxys","sr":"EX","sd":"EX","rd":"2005-02-01","c":{"1":{"n":"Altaria","r":"Holo"},"2":{"n":"Beautifly","r":"Holo"},"3":{"n":"Breloom","r":"Holo"},"4":{"n":"Camerupt","r":"Holo"},"5":{"n":"Claydol","r":"Holo"},"6":{"n":"Crawdaunt","r":"Holo"},"7":{"n":"Dusclops","r":"Holo"},"8":{"n":"Gyarados","r":"Holo"},"9":{"n":"Jirachi","r":"Holo"},"10":{"n":"Ludicolo","r":"Holo"},"11":{"n":"Metagross","r":"Holo"},"12":{"n":"Mightyena","r":"Holo"},"13":{"n":"Ninjask","r":"Holo"},"14":{"n":"Shedinja","r":"Holo"},"15":{"n":"Slaking","r":"Holo"},"96":{"n":"Crobat ex","r":"Holo"},"97":{"n":"Deoxys ex","r":"Holo"},"98":{"n":"Deoxys ex","r":"Holo"},"99":{"n":"Deoxys ex","r":"Holo"},"100":{"n":"Hariyama ex","r":"Holo"},"101":{"n":"Manectric ex","r":"Holo"},"102":{"n":"Rayquaza ex","r":"Holo"},"103":{"n":"Salamence ex","r":"Holo"},"104":{"n":"Sharpedo ex","r":"Holo"},"105":{"n":"Latias ★","r":"Holo"},"106":{"n":"Latios ★","r":"Holo"},"107":{"n":"Rayquaza ★","r":"Holo"}}},"ex9":{"sn":"Emerald","sr":"EX","sd":"EX","rd":"2005-05-01","c":{"1":{"n":"Blaziken","r":"Holo"},"2":{"n":"Deoxys","r":"Holo"},"3":{"n":"Exploud","r":"Holo"},"4":{"n":"Gardevoir","r":"Holo"},"5":{"n":"Groudon","r":"Holo"},"6":{"n":"Kyogre","r":"Holo"},"7":{"n":"Manectric","r":"Holo"},"8":{"n":"Milotic","r":"Holo"},"9":{"n":"Rayquaza","r":"Holo"},"10":{"n":"Sceptile","r":"Holo"},"11":{"n":"Swampert","r":"Holo"},"90":{"n":"Altaria ex","r":"Holo"},"91":{"n":"Cacturne ex","r":"Holo"},"92":{"n":"Camerupt ex","r":"Holo"},"93":{"n":"Deoxys ex","r":"Holo"},"94":{"n":"Dusclops ex","r":"Holo"},"95":{"n":"Medicham ex","r":"Holo"},"96":{"n":"Milotic ex","r":"Holo"},"97":{"n":"Raichu ex","r":"Holo"},"98":{"n":"Regice ex","r":"Holo"},"99":{"n":"Regirock ex","r":"Holo"},"100":{"n":"Registeel ex","r":"Holo"},"101":{"n":"Grass Energy","r":"Holo"},"102":{"n":"Fire Energy","r":"Holo"},"103":{"n":"Water Energy","r":"Holo"},"104":{"n":"Lightning Energy","r":"Holo"},"105":{"n":"Psychic Energy","r":"Holo"},"106":{"n":"Fighting Energy","r":"Holo"}}},"ex10":{"sn":"Unseen Forces","sr":"EX","sd":"EX","rd":"2005-08-01","c":{"1":{"n":"Ampharos","r":"Holo"},"2":{"n":"Ariados","r":"Holo"},"3":{"n":"Bellossom","r":"Holo"},"4":{"n":"Feraligatr","r":"Holo"},"5":{"n":"Flareon","r":"Holo"},"6":{"n":"Forretress","r":"Holo"},"7":{"n":"Houndoom","r":"Holo"},"8":{"n":"Jolteon","r":"Holo"},"9":{"n":"Meganium","r":"Holo"},"10":{"n":"Octillery","r":"Holo"},"11":{"n":"Poliwrath","r":"Holo"},"12":{"n":"Porygon2","r":"Holo"},"13":{"n":"Slowbro","r":"Holo"},"14":{"n":"Slowking","r":"Holo"},"15":{"n":"Sudowoodo","r":"Holo"},"16":{"n":"Sunflora","r":"Holo"},"17":{"n":"Typhlosion","r":"Holo"},"18":{"n":"Ursaring","r":"Holo"},"19":{"n":"Vaporeon","r":"Holo"},"101":{"n":"Blissey ex","r":"Holo"},"102":{"n":"Espeon ex","r":"Holo"},"103":{"n":"Feraligatr ex","r":"Holo"},"104":{"n":"Ho-Oh ex","r":"Holo"},"105":{"n":"Lugia ex","r":"Holo"},"106":{"n":"Meganium ex","r":"Holo"},"107":{"n":"Politoed ex","r":"Holo"},"108":{"n":"Scizor ex","r":"Holo"},"109":{"n":"Steelix ex","r":"Holo"},"110":{"n":"Typhlosion ex","r":"Holo"},"111":{"n":"Tyranitar ex","r":"Holo"},"112":{"n":"Umbreon ex","r":"Holo"},"113":{"n":"Entei ★","r":"Holo"},"114":{"n":"Raikou ★","r":"Holo"},"115":{"n":"Suicune ★","r":"Holo"}}},"ex11":{"sn":"Delta Species","sr":"EX","sd":"EX","rd":"2005-10-31","c":{"1":{"n":"Beedrill δ","r":"Holo"},"2":{"n":"Crobat δ","r":"Holo"},"3":{"n":"Dragonite δ","r":"Holo"},"4":{"n":"Espeon δ","r":"Holo"},"5":{"n":"Flareon δ","r":"Holo"},"6":{"n":"Gardevoir δ","r":"Holo"},"7":{"n":"Jolteon δ","r":"Holo"},"8":{"n":"Latias δ","r":"Holo"},"9":{"n":"Latios δ","r":"Holo"},"10":{"n":"Marowak δ","r":"Holo"},"11":{"n":"Metagross δ","r":"Holo"},"12":{"n":"Mewtwo δ","r":"Holo"},"13":{"n":"Rayquaza δ","r":"Holo"},"14":{"n":"Salamence δ","r":"Holo"},"15":{"n":"Starmie δ","r":"Holo"},"16":{"n":"Tyranitar δ","r":"Holo"},"17":{"n":"Umbreon δ","r":"Holo"},"18":{"n":"Vaporeon δ","r":"Holo"},"108":{"n":"Flareon ex","r":"Holo"},"109":{"n":"Jolteon ex","r":"Holo"},"110":{"n":"Vaporeon ex","r":"Holo"},"111":{"n":"Groudon ★","r":"Holo"},"112":{"n":"Kyogre ★","r":"Holo"},"113":{"n":"Metagross ★","r":"Holo"}}},"ex12":{"sn":"Legend Maker","sr":"EX","sd":"EX","rd":"2006-02-01","c":{"1":{"n":"Aerodactyl","r":"Holo"},"2":{"n":"Aggron","r":"Holo"},"3":{"n":"Cradily","r":"Holo"},"4":{"n":"Delcatty","r":"Holo"},"5":{"n":"Gengar","r":"Holo"},"6":{"n":"Golem","r":"Holo"},"7":{"n":"Kabutops","r":"Holo"},"8":{"n":"Lapras","r":"Holo"},"9":{"n":"Machamp","r":"Holo"},"10":{"n":"Mew","r":"Holo"},"11":{"n":"Muk","r":"Holo"},"12":{"n":"Shiftry","r":"Holo"},"13":{"n":"Victreebel","r":"Holo"},"14":{"n":"Wailord","r":"Holo"},"83":{"n":"Arcanine ex","r":"Holo"},"84":{"n":"Armaldo ex","r":"Holo"},"85":{"n":"Banette ex","r":"Holo"},"86":{"n":"Dustox ex","r":"Holo"},"87":{"n":"Flygon ex","r":"Holo"},"88":{"n":"Mew ex","r":"Holo"},"89":{"n":"Walrein ex","r":"Holo"},"90":{"n":"Regice ★","r":"Holo"},"91":{"n":"Regirock ★","r":"Holo"},"92":{"n":"Registeel ★","r":"Holo"}}},"ex13":{"sn":"Holon Phantoms","sr":"EX","sd":"EX","rd":"2006-05-01","c":{"1":{"n":"Armaldo δ","r":"Holo"},"2":{"n":"Cradily δ","r":"Holo"},"3":{"n":"Deoxys δ","r":"Holo"},"4":{"n":"Deoxys δ","r":"Holo"},"5":{"n":"Deoxys δ","r":"Holo"},"6":{"n":"Deoxys δ","r":"Holo"},"7":{"n":"Flygon δ","r":"Holo"},"8":{"n":"Gyarados δ","r":"Holo"},"9":{"n":"Kabutops δ","r":"Holo"},"10":{"n":"Kingdra δ","r":"Holo"},"11":{"n":"Latias δ","r":"Holo"},"12":{"n":"Latios δ","r":"Holo"},"13":{"n":"Omastar δ","r":"Holo"},"14":{"n":"Pidgeot δ","r":"Holo"},"15":{"n":"Raichu δ","r":"Holo"},"16":{"n":"Rayquaza δ","r":"Holo"},"17":{"n":"Vileplume δ","r":"Holo"},"99":{"n":"Crawdaunt ex","r":"Holo"},"100":{"n":"Mew ex","r":"Holo"},"101":{"n":"Mightyena ex","r":"Holo"},"102":{"n":"Gyarados ★ δ","r":"Holo"},"103":{"n":"Mewtwo ★","r":"Holo"},"104":{"n":"Pikachu ★","r":"Holo"},"105":{"n":"Grass Energy","r":"Holo"},"106":{"n":"Fire Energy","r":"Holo"},"107":{"n":"Water Energy","r":"Holo"},"108":{"n":"Lightning Energy","r":"Holo"},"109":{"n":"Psychic Energy","r":"Holo"},"110":{"n":"Fighting Energy","r":"Holo"}}},"ex14":{"sn":"Crystal Guardians","sr":"EX","sd":"EX","rd":"2006-08-01","c":{"1":{"n":"Banette","r":"Holo"},"2":{"n":"Blastoise δ","r":"Holo"},"3":{"n":"Camerupt","r":"Holo"},"4":{"n":"Charizard δ","r":"Holo"},"5":{"n":"Dugtrio","r":"Holo"},"6":{"n":"Ludicolo δ","r":"Holo"},"7":{"n":"Luvdisc","r":"Holo"},"8":{"n":"Manectric","r":"Holo"},"9":{"n":"Mawile","r":"Holo"},"10":{"n":"Sableye","r":"Holo"},"11":{"n":"Swalot","r":"Holo"},"12":{"n":"Tauros","r":"Holo"},"13":{"n":"Wigglytuff","r":"Holo"},"89":{"n":"Aggron ex","r":"Holo"},"90":{"n":"Blaziken ex","r":"Holo"},"91":{"n":"Delcatty ex","r":"Holo"},"92":{"n":"Exploud ex","r":"Holo"},"93":{"n":"Groudon ex","r":"Holo"},"94":{"n":"Jirachi ex","r":"Holo"},"95":{"n":"Kyogre ex","r":"Holo"},"96":{"n":"Sceptile ex δ","r":"Holo"},"97":{"n":"Shiftry ex","r":"Holo"},"98":{"n":"Swampert ex","r":"Holo"},"99":{"n":"Alakazam ★","r":"Holo"},"100":{"n":"Celebi ★","r":"Holo"}}},"ex15":{"sn":"Dragon Frontiers","sr":"EX","sd":"EX","rd":"2006-11-01","c":{"1":{"n":"Ampharos δ","r":"Holo"},"2":{"n":"Feraligatr δ","r":"Holo"},"3":{"n":"Heracross δ","r":"Holo"},"4":{"n":"Meganium δ","r":"Holo"},"5":{"n":"Milotic δ","r":"Holo"},"6":{"n":"Nidoking δ","r":"Holo"},"7":{"n":"Nidoqueen δ","r":"Holo"},"8":{"n":"Ninetales δ","r":"Holo"},"9":{"n":"Pinsir δ","r":"Holo"},"10":{"n":"Snorlax δ","r":"Holo"},"11":{"n":"Togetic δ","r":"Holo"},"12":{"n":"Typhlosion δ","r":"Holo"},"90":{"n":"Altaria ex δ","r":"Holo"},"91":{"n":"Dragonite ex δ","r":"Holo"},"92":{"n":"Flygon ex δ","r":"Holo"},"93":{"n":"Gardevoir ex δ","r":"Holo"},"94":{"n":"Kingdra ex δ","r":"Holo"},"95":{"n":"Latias ex δ","r":"Holo"},"96":{"n":"Latios ex δ","r":"Holo"},"97":{"n":"Rayquaza ex δ","r":"Holo"},"98":{"n":"Salamence ex δ","r":"Holo"},"99":{"n":"Tyranitar ex δ","r":"Holo"},"100":{"n":"Charizard ★ δ","r":"Holo"},"101":{"n":"Mew ★ δ","r":"Holo"}}},"ex16":{"sn":"Power Keepers","sr":"EX","sd":"EX","rd":"2007-02-02","c":{"1":{"n":"Aggron","r":"Holo"},"2":{"n":"Altaria","r":"Holo"},"3":{"n":"Armaldo","r":"Holo"},"4":{"n":"Banette","r":"Holo"},"5":{"n":"Blaziken","r":"Holo"},"6":{"n":"Charizard","r":"Holo"},"7":{"n":"Cradily","r":"Holo"},"8":{"n":"Delcatty","r":"Holo"},"9":{"n":"Gardevoir","r":"Holo"},"10":{"n":"Kabutops","r":"Holo"},"11":{"n":"Machamp","r":"Holo"},"12":{"n":"Raichu","r":"Holo"},"13":{"n":"Slaking","r":"Holo"},"92":{"n":"Absol ex","r":"Holo"},"93":{"n":"Claydol ex","r":"Holo"},"94":{"n":"Flygon ex","r":"Holo"},"95":{"n":"Metagross ex","r":"Holo"},"96":{"n":"Salamence ex","r":"Holo"},"97":{"n":"Shiftry ex","r":"Holo"},"98":{"n":"Skarmory ex","r":"Holo"},"99":{"n":"Walrein ex","r":"Holo"},"100":{"n":"Flareon ★","r":"Holo"},"101":{"n":"Jolteon ★","r":"Holo"},"102":{"n":"Vaporeon ★","r":"Holo"},"103":{"n":"Grass Energy","r":"Holo"},"104":{"n":"Fire Energy","r":"Holo"},"105":{"n":"Water Energy","r":"Holo"},"106":{"n":"Lightning Energy","r":"Holo"},"107":{"n":"Psychic Energy","r":"Holo"},"108":{"n":"Fighting Energy","r":"Holo"}}},"dp1":{"sn":"Diamond & Pearl","sr":"Diamond & Pearl","sd":"Diamond & Pearl","rd":"2007-05-01","c":{"1":{"n":"Dialga","r":"Holo"},"2":{"n":"Dusknoir","r":"Holo"},"3":{"n":"Electivire","r":"Holo"},"4":{"n":"Empoleon","r":"Holo"},"5":{"n":"Infernape","r":"Holo"},"6":{"n":"Lucario","r":"Holo"},"7":{"n":"Luxray","r":"Holo"},"8":{"n":"Magnezone","r":"Holo"},"9":{"n":"Manaphy","r":"Holo"},"10":{"n":"Mismagius","r":"Holo"},"11":{"n":"Palkia","r":"Holo"},"12":{"n":"Rhyperior","r":"Holo"},"13":{"n":"Roserade","r":"Holo"},"14":{"n":"Shiftry","r":"Holo"},"15":{"n":"Skuntank","r":"Holo"},"16":{"n":"Staraptor","r":"Holo"},"17":{"n":"Torterra","r":"Holo"},"120":{"n":"Empoleon LV.X","r":"Holo"},"121":{"n":"Infernape LV.X","r":"Holo"},"122":{"n":"Torterra LV.X","r":"Holo"}}},"dp2":{"sn":"Mysterious Treasures","sr":"Diamond & Pearl","sd":"Diamond & Pearl","rd":"2007-08-01","c":{"1":{"n":"Aggron","r":"Holo"},"2":{"n":"Alakazam","r":"Holo"},"3":{"n":"Ambipom","r":"Holo"},"4":{"n":"Azelf","r":"Holo"},"5":{"n":"Blissey","r":"Holo"},"6":{"n":"Bronzong","r":"Holo"},"7":{"n":"Celebi","r":"Holo"},"8":{"n":"Feraligatr","r":"Holo"},"9":{"n":"Garchomp","r":"Holo"},"10":{"n":"Honchkrow","r":"Holo"},"11":{"n":"Lumineon","r":"Holo"},"12":{"n":"Magmortar","r":"Holo"},"13":{"n":"Meganium","r":"Holo"},"14":{"n":"Mesprit","r":"Holo"},"15":{"n":"Raichu","r":"Holo"},"16":{"n":"Typhlosion","r":"Holo"},"17":{"n":"Tyranitar","r":"Holo"},"18":{"n":"Uxie","r":"Holo"},"121":{"n":"Electivire LV.X","r":"Holo"},"122":{"n":"Lucario LV.X","r":"Holo"},"123":{"n":"Magmortar LV.X","r":"Holo"}}},"dp3":{"sn":"Secret Wonders","sr":"Diamond & Pearl","sd":"Diamond & Pearl","rd":"2007-11-01","c":{"1":{"n":"Ampharos","r":"Holo"},"2":{"n":"Blastoise","r":"Holo"},"3":{"n":"Charizard","r":"Holo"},"4":{"n":"Entei","r":"Holo"},"5":{"n":"Flygon","r":"Holo"},"6":{"n":"Gallade","r":"Holo"},"7":{"n":"Gardevoir","r":"Holo"},"8":{"n":"Gastrodon East Sea","r":"Holo"},"9":{"n":"Gastrodon West Sea","r":"Holo"},"10":{"n":"Ho-Oh","r":"Holo"},"11":{"n":"Jumpluff","r":"Holo"},"12":{"n":"Lickilicky","r":"Holo"},"13":{"n":"Ludicolo","r":"Holo"},"14":{"n":"Lugia","r":"Holo"},"15":{"n":"Mew","r":"Holo"},"16":{"n":"Raikou","r":"Holo"},"17":{"n":"Roserade","r":"Holo"},"18":{"n":"Salamence","r":"Holo"},"19":{"n":"Suicune","r":"Holo"},"20":{"n":"Venusaur","r":"Holo"},"131":{"n":"Gardevoir LV.X","r":"Holo"},"132":{"n":"Honchkrow LV.X","r":"Holo"}}},"dp4":{"sn":"Great Encounters","sr":"Diamond & Pearl","sd":"Diamond & Pearl","rd":"2008-02-01","c":{"1":{"n":"Blaziken","r":"Holo"},"2":{"n":"Cresselia","r":"Holo"},"3":{"n":"Darkrai","r":"Holo"},"4":{"n":"Darkrai","r":"Holo"},"5":{"n":"Pachirisu","r":"Holo"},"6":{"n":"Porygon-Z","r":"Holo"},"7":{"n":"Rotom","r":"Holo"},"8":{"n":"Sceptile","r":"Holo"},"9":{"n":"Swampert","r":"Holo"},"10":{"n":"Tangrowth","r":"Holo"},"11":{"n":"Togekiss","r":"Holo"},"103":{"n":"Cresselia LV.X","r":"Holo"},"104":{"n":"Darkrai LV.X","r":"Holo"},"105":{"n":"Dialga LV.X","r":"Holo"},"106":{"n":"Palkia LV.X","r":"Holo"}}},"dp5":{"sn":"Majestic Dawn","sr":"Diamond & Pearl","sd":"Diamond & Pearl","rd":"2008-05-01","c":{"1":{"n":"Articuno","r":"Holo"},"2":{"n":"Cresselia","r":"Holo"},"3":{"n":"Darkrai","r":"Holo"},"4":{"n":"Dialga","r":"Holo"},"5":{"n":"Glaceon","r":"Holo"},"6":{"n":"Kabutops","r":"Holo"},"7":{"n":"Leafeon","r":"Holo"},"8":{"n":"Manaphy","r":"Holo"},"9":{"n":"Mewtwo","r":"Holo"},"10":{"n":"Moltres","r":"Holo"},"11":{"n":"Palkia","r":"Holo"},"12":{"n":"Phione","r":"Holo"},"13":{"n":"Rotom","r":"Holo"},"14":{"n":"Zapdos","r":"Holo"},"97":{"n":"Garchomp LV.X","r":"Holo"},"98":{"n":"Glaceon LV.X","r":"Holo"},"99":{"n":"Leafeon LV.X","r":"Holo"},"100":{"n":"Porygon-Z LV.X","r":"Holo"}}},"dp6":{"sn":"Legends Awakened","sr":"Diamond & Pearl","sd":"Diamond & Pearl","rd":"2008-08-01","c":{"1":{"n":"Deoxys Normal Forme","r":"Holo"},"2":{"n":"Dragonite","r":"Holo"},"3":{"n":"Froslass","r":"Holo"},"4":{"n":"Giratina","r":"Holo"},"5":{"n":"Gliscor","r":"Holo"},"6":{"n":"Heatran","r":"Holo"},"7":{"n":"Kingdra","r":"Holo"},"8":{"n":"Luxray","r":"Holo"},"9":{"n":"Mamoswine","r":"Holo"},"10":{"n":"Metagross","r":"Holo"},"11":{"n":"Mewtwo","r":"Holo"},"12":{"n":"Politoed","r":"Holo"},"13":{"n":"Probopass","r":"Holo"},"14":{"n":"Rayquaza","r":"Holo"},"15":{"n":"Regigigas","r":"Holo"},"16":{"n":"Spiritomb","r":"Holo"},"17":{"n":"Yanmega","r":"Holo"},"140":{"n":"Azelf LV.X","r":"Holo"},"141":{"n":"Gliscor LV.X","r":"Holo"},"142":{"n":"Magnezone LV.X","r":"Holo"},"143":{"n":"Mesprit LV.X","r":"Holo"},"144":{"n":"Mewtwo LV.X","r":"Holo"},"145":{"n":"Rhyperior LV.X","r":"Holo"},"146":{"n":"Uxie LV.X","r":"Holo"}}},"dp7":{"sn":"Stormfront","sr":"Diamond & Pearl","sd":"Diamond & Pearl","rd":"2008-11-01","c":{"1":{"n":"Dusknoir","r":"Holo"},"2":{"n":"Empoleon","r":"Holo"},"3":{"n":"Infernape","r":"Holo"},"4":{"n":"Lumineon","r":"Holo"},"5":{"n":"Magnezone","r":"Holo"},"6":{"n":"Magnezone","r":"Holo"},"7":{"n":"Mismagius","r":"Holo"},"8":{"n":"Raichu","r":"Holo"},"9":{"n":"Regigigas","r":"Holo"},"10":{"n":"Sceptile","r":"Holo"},"11":{"n":"Torterra","r":"Holo"},"96":{"n":"Dusknoir LV.X","r":"Holo"},"97":{"n":"Heatran LV.X","r":"Holo"},"98":{"n":"Machamp LV.X","r":"Holo"},"99":{"n":"Raichu LV.X","r":"Holo"},"100":{"n":"Regigigas LV.X","r":"Holo"}}},"pl1":{"sn":"Platinum","sr":"Platinum","sd":"Platinum","rd":"2009-02-11","c":{"1":{"n":"Ampharos","r":"Holo"},"2":{"n":"Blastoise","r":"Holo"},"3":{"n":"Blaziken","r":"Holo"},"4":{"n":"Delcatty","r":"Holo"},"5":{"n":"Dialga","r":"Holo"},"6":{"n":"Dialga","r":"Holo"},"7":{"n":"Dialga G","r":"Holo"},"8":{"n":"Gardevoir","r":"Holo"},"9":{"n":"Giratina","r":"Holo"},"10":{"n":"Giratina","r":"Holo"},"11":{"n":"Manectric","r":"Holo"},"12":{"n":"Palkia G","r":"Holo"},"13":{"n":"Rampardos","r":"Holo"},"14":{"n":"Shaymin","r":"Holo"},"15":{"n":"Shaymin","r":"Holo"},"16":{"n":"Slaking","r":"Holo"},"17":{"n":"Weavile G","r":"Holo"},"122":{"n":"Dialga G LV.X","r":"Holo"},"123":{"n":"Drapion LV.X","r":"Holo"},"124":{"n":"Giratina LV.X","r":"Holo"},"125":{"n":"Palkia G LV.X","r":"Holo"},"126":{"n":"Shaymin LV.X","r":"Holo"},"127":{"n":"Shaymin LV.X","r":"Holo"}}},"pl2":{"sn":"Rising Rivals","sr":"Platinum","sd":"Platinum","rd":"2009-05-16","c":{"1":{"n":"Arcanine","r":"Holo"},"2":{"n":"Bastiodon GL","r":"Holo"},"3":{"n":"Darkrai G","r":"Holo"},"4":{"n":"Floatzel GL","r":"Holo"},"5":{"n":"Flygon","r":"Holo"},"6":{"n":"Froslass GL","r":"Holo"},"7":{"n":"Jirachi","r":"Holo"},"8":{"n":"Lucario GL","r":"Holo"},"9":{"n":"Luxray GL","r":"Holo"},"10":{"n":"Mismagius GL","r":"Holo"},"11":{"n":"Rampardos GL","r":"Holo"},"12":{"n":"Roserade GL","r":"Holo"},"13":{"n":"Shiftry","r":"Holo"},"103":{"n":"Alakazam E4 LV.X","r":"Holo"},"104":{"n":"Floatzel GL LV.X","r":"Holo"},"105":{"n":"Flygon LV.X","r":"Holo"},"106":{"n":"Gallade E4 LV.X","r":"Holo"},"107":{"n":"Hippowdon LV.X","r":"Holo"},"108":{"n":"Infernape E4 LV.X","r":"Holo"},"109":{"n":"Luxray GL LV.X","r":"Holo"},"110":{"n":"Mismagius GL LV.X","r":"Holo"},"111":{"n":"Snorlax LV.X","r":"Holo"}}},"pl3":{"sn":"Supreme Victors","sr":"Platinum","sd":"Platinum","rd":"2009-08-19","c":{"1":{"n":"Absol G","r":"Holo"},"2":{"n":"Blaziken FB","r":"Holo"},"3":{"n":"Drifblim FB","r":"Holo"},"4":{"n":"Electivire FB","r":"Holo"},"5":{"n":"Garchomp","r":"Holo"},"6":{"n":"Magmortar","r":"Holo"},"7":{"n":"Metagross","r":"Holo"},"8":{"n":"Rayquaza C","r":"Holo"},"9":{"n":"Regigigas FB","r":"Holo"},"10":{"n":"Rhyperior","r":"Holo"},"11":{"n":"Staraptor FB","r":"Holo"},"12":{"n":"Swampert","r":"Holo"},"13":{"n":"Venusaur","r":"Holo"},"14":{"n":"Yanmega","r":"Holo"},"141":{"n":"Absol G LV.X","r":"Holo"},"142":{"n":"Blaziken FB LV.X","r":"Holo"},"143":{"n":"Charizard G LV.X","r":"Holo"},"144":{"n":"Electivire FB LV.X","r":"Holo"},"145":{"n":"Garchomp C LV.X","r":"Holo"},"146":{"n":"Rayquaza C LV.X","r":"Holo"},"147":{"n":"Staraptor FB LV.X","r":"Holo"}}},"pl4":{"sn":"Arceus","sr":"Platinum","sd":"Platinum","rd":"2009-11-04","c":{"1":{"n":"Charizard","r":"Holo"},"2":{"n":"Froslass","r":"Holo"},"3":{"n":"Heatran","r":"Holo"},"4":{"n":"Kabutops","r":"Holo"},"5":{"n":"Luxray","r":"Holo"},"6":{"n":"Mothim","r":"Holo"},"7":{"n":"Probopass","r":"Holo"},"8":{"n":"Salamence","r":"Holo"},"9":{"n":"Swalot","r":"Holo"},"10":{"n":"Tangrowth","r":"Holo"},"11":{"n":"Toxicroak","r":"Holo"},"12":{"n":"Zapdos G","r":"Holo"},"94":{"n":"Arceus LV.X","r":"Holo"},"95":{"n":"Arceus LV.X","r":"Holo"},"96":{"n":"Arceus LV.X","r":"Holo"},"97":{"n":"Gengar LV.X","r":"Holo"},"98":{"n":"Salamence LV.X","r":"Holo"},"99":{"n":"Tangrowth LV.X","r":"Holo"}}},"hgss1":{"sn":"HeartGold & SoulSilver","sr":"HeartGold & SoulSilver","sd":"HeartGold & SoulSilver","rd":"2010-02-10","c":{"1":{"n":"Arcanine","r":"Holo"},"2":{"n":"Azumarill","r":"Holo"},"3":{"n":"Clefable","r":"Holo"},"4":{"n":"Gyarados","r":"Holo"},"5":{"n":"Hitmontop","r":"Holo"},"6":{"n":"Jumpluff","r":"Holo"},"7":{"n":"Ninetales","r":"Holo"},"8":{"n":"Noctowl","r":"Holo"},"9":{"n":"Quagsire","r":"Holo"},"10":{"n":"Raichu","r":"Holo"},"11":{"n":"Shuckle","r":"Holo"},"12":{"n":"Slowking","r":"Holo"},"13":{"n":"Wobbuffet","r":"Holo"},"123":{"n":"Gyarados","r":"Holo"}}},"hgss2":{"sn":"HS—Unleashed","sr":"HeartGold & SoulSilver","sd":"HeartGold & SoulSilver","rd":"2010-05-12","c":{"1":{"n":"Jirachi","r":"Holo"},"2":{"n":"Magmortar","r":"Holo"},"3":{"n":"Manaphy","r":"Holo"},"4":{"n":"Metagross","r":"Holo"},"5":{"n":"Mismagius","r":"Holo"},"6":{"n":"Octillery","r":"Holo"},"7":{"n":"Politoed","r":"Holo"},"8":{"n":"Shaymin","r":"Holo"},"9":{"n":"Sudowoodo","r":"Holo"},"10":{"n":"Torterra","r":"Holo"},"11":{"n":"Xatu","r":"Holo"}}},"hgss3":{"sn":"HS—Undaunted","sr":"HeartGold & SoulSilver","sd":"HeartGold & SoulSilver","rd":"2010-08-18","c":{"1":{"n":"Bellossom","r":"Holo"},"2":{"n":"Espeon","r":"Holo"},"3":{"n":"Forretress","r":"Holo"},"4":{"n":"Gliscor","r":"Holo"},"5":{"n":"Houndoom","r":"Holo"},"6":{"n":"Magcargo","r":"Holo"},"7":{"n":"Scizor","r":"Holo"},"8":{"n":"Smeargle","r":"Holo"},"9":{"n":"Togekiss","r":"Holo"},"10":{"n":"Umbreon","r":"Holo"}}},"hgss4":{"sn":"HS—Triumphant","sr":"HeartGold & SoulSilver","sd":"HeartGold & SoulSilver","rd":"2010-11-03","c":{"1":{"n":"Aggron","r":"Holo"},"2":{"n":"Altaria","r":"Holo"},"3":{"n":"Celebi","r":"Holo"},"4":{"n":"Drapion","r":"Holo"},"5":{"n":"Mamoswine","r":"Holo"},"6":{"n":"Nidoking","r":"Holo"},"7":{"n":"Porygon-Z","r":"Holo"},"8":{"n":"Rapidash","r":"Holo"},"9":{"n":"Solrock","r":"Holo"},"10":{"n":"Spiritomb","r":"Holo"},"11":{"n":"Venomoth","r":"Holo"},"12":{"n":"Victreebel","r":"Holo"}}},"col1":{"sn":"Call of Legends","sr":"HeartGold & SoulSilver","sd":"HeartGold & SoulSilver","rd":"2011-02-09","c":{"1":{"n":"Clefable","r":"Holo"},"2":{"n":"Deoxys","r":"Holo"},"3":{"n":"Dialga","r":"Holo"},"4":{"n":"Espeon","r":"Holo"},"5":{"n":"Forretress","r":"Holo"},"6":{"n":"Groudon","r":"Holo"},"7":{"n":"Gyarados","r":"Holo"},"8":{"n":"Hitmontop","r":"Holo"},"9":{"n":"Ho-Oh","r":"Holo"},"10":{"n":"Houndoom","r":"Holo"},"11":{"n":"Jirachi","r":"Holo"},"12":{"n":"Kyogre","r":"Holo"},"13":{"n":"Leafeon","r":"Holo"},"14":{"n":"Lucario","r":"Holo"},"15":{"n":"Lugia","r":"Holo"},"16":{"n":"Magmortar","r":"Holo"},"17":{"n":"Ninetales","r":"Holo"},"18":{"n":"Pachirisu","r":"Holo"},"19":{"n":"Palkia","r":"Holo"},"20":{"n":"Rayquaza","r":"Holo"},"21":{"n":"Smeargle","r":"Holo"},"22":{"n":"Umbreon","r":"Holo"},"SL1":{"n":"Deoxys","r":"Holo"},"SL10":{"n":"Rayquaza","r":"Holo"},"SL11":{"n":"Suicune","r":"Holo"},"SL2":{"n":"Dialga","r":"Holo"},"SL3":{"n":"Entei","r":"Holo"},"SL4":{"n":"Groudon","r":"Holo"},"SL5":{"n":"Ho-Oh","r":"Holo"},"SL6":{"n":"Kyogre","r":"Holo"},"SL7":{"n":"Lugia","r":"Holo"},"SL8":{"n":"Palkia","r":"Holo"},"SL9":{"n":"Raikou","r":"Holo"}}},"bw1":{"sn":"Black & White","sr":"Black & White","sd":"Black & White","rd":"2011-04-25","c":{"5":{"n":"Serperior","r":"Holo"},"6":{"n":"Serperior","r":"Holo"},"19":{"n":"Emboar","r":"Holo"},"20":{"n":"Emboar","r":"Holo"},"26":{"n":"Reshiram","r":"Holo"},"31":{"n":"Samurott","r":"Holo"},"32":{"n":"Samurott","r":"Holo"},"47":{"n":"Zekrom","r":"Holo"},"57":{"n":"Reuniclus","r":"Holo"},"65":{"n":"Krookodile","r":"Holo"},"71":{"n":"Zoroark","r":"Holo"},"76":{"n":"Klinklang","r":"Holo"}}},"bw2":{"sn":"Emerging Powers","sr":"Black & White","sd":"Black & White","rd":"2011-08-31","c":{"17":{"n":"Virizion","r":"Holo"},"30":{"n":"Beartic","r":"Holo"},"35":{"n":"Thundurus","r":"Holo"},"47":{"n":"Gothitelle","r":"Holo"},"56":{"n":"Excadrill","r":"Holo"},"63":{"n":"Terrakion","r":"Holo"},"67":{"n":"Zoroark","r":"Holo"},"77":{"n":"Cobalion","r":"Holo"},"88":{"n":"Braviary","r":"Holo"},"89":{"n":"Tornadus","r":"Holo"}}},"bw3":{"sn":"Noble Victories","sr":"Black & White","sd":"Black & White","rd":"2011-11-16","c":{"3":{"n":"Leavanny","r":"Holo"},"13":{"n":"Virizion","r":"Holo"},"14":{"n":"Victini","r":"Holo"},"15":{"n":"Victini","r":"Holo"},"34":{"n":"Kyurem","r":"Holo"},"41":{"n":"Eelektross","r":"Holo"},"64":{"n":"Conkeldurr","r":"Holo"},"73":{"n":"Terrakion","r":"Holo"},"74":{"n":"Landorus","r":"Holo"},"79":{"n":"Hydreigon","r":"Holo"},"82":{"n":"Bisharp","r":"Holo"},"84":{"n":"Cobalion","r":"Holo"},"88":{"n":"Haxorus","r":"Holo"}}},"bw4":{"sn":"Next Destinies","sr":"Black & White","sd":"Black & White","rd":"2012-02-08","c":{"5":{"n":"Shaymin-EX","r":"Holo"},"14":{"n":"Moltres","r":"Holo"},"20":{"n":"Chandelure","r":"Holo"},"22":{"n":"Reshiram-EX","r":"Holo"},"27":{"n":"Articuno","r":"Holo"},"33":{"n":"Vanilluxe","r":"Holo"},"38":{"n":"Kyurem-EX","r":"Holo"},"41":{"n":"Zapdos","r":"Holo"},"46":{"n":"Luxray","r":"Holo"},"51":{"n":"Zekrom-EX","r":"Holo"},"54":{"n":"Mewtwo-EX","r":"Holo"},"57":{"n":"Gardevoir","r":"Holo"},"64":{"n":"Lucario","r":"Holo"},"74":{"n":"Scrafty","r":"Holo"},"82":{"n":"Regigigas-EX","r":"Holo"},"85":{"n":"Cinccino","r":"Holo"}}},"bw5":{"sn":"Dark Explorers","sr":"Black & White","sd":"Black & White","rd":"2012-05-09","c":{"3":{"n":"Venusaur","r":"Holo"},"13":{"n":"Entei-EX","r":"Holo"},"17":{"n":"Blaziken","r":"Holo"},"22":{"n":"Volcarona","r":"Holo"},"26":{"n":"Kyogre-EX","r":"Holo"},"29":{"n":"Empoleon","r":"Holo"},"38":{"n":"Raikou-EX","r":"Holo"},"47":{"n":"Eelektross","r":"Holo"},"54":{"n":"Groudon-EX","r":"Holo"},"63":{"n":"Darkrai-EX","r":"Holo"},"66":{"n":"Krookodile","r":"Holo"},"77":{"n":"Klinklang","r":"Holo"},"82":{"n":"Blissey","r":"Holo"},"89":{"n":"Haxorus","r":"Holo"},"90":{"n":"Tornadus-EX","r":"Holo"}}},"bw6":{"sn":"Dragons Exalted","sr":"Black & White","sd":"Black & White","rd":"2012-08-15","c":{"19":{"n":"Ninetales","r":"Holo"},"22":{"n":"Ho-Oh-EX","r":"Holo"},"26":{"n":"Wailord","r":"Holo"},"28":{"n":"Milotic","r":"Holo"},"40":{"n":"Ampharos","r":"Holo"},"46":{"n":"Mew-EX","r":"Holo"},"52":{"n":"Sigilyph","r":"Holo"},"54":{"n":"Garbodor","r":"Holo"},"59":{"n":"Golurk","r":"Holo"},"67":{"n":"Gigalith","r":"Holo"},"71":{"n":"Terrakion-EX","r":"Holo"},"80":{"n":"Aggron","r":"Holo"},"81":{"n":"Registeel-EX","r":"Holo"},"84":{"n":"Altaria","r":"Holo"},"85":{"n":"Rayquaza-EX","r":"Holo"},"90":{"n":"Garchomp","r":"Holo"},"92":{"n":"Giratina-EX","r":"Holo"},"97":{"n":"Hydreigon","r":"Holo"},"103":{"n":"Slaking","r":"Holo"}}},"dv1":{"sn":"Dragon Vault","sr":"Black & White","sd":"Black & White","rd":"2012-10-05","c":{"1":{"n":"Dratini","r":"Holo"},"2":{"n":"Dratini","r":"Holo"},"3":{"n":"Dragonair","r":"Holo"},"4":{"n":"Dragonair","r":"Holo"},"5":{"n":"Dragonite","r":"Holo"},"6":{"n":"Bagon","r":"Holo"},"7":{"n":"Shelgon","r":"Holo"},"8":{"n":"Salamence","r":"Holo"},"9":{"n":"Latias","r":"Holo"},"10":{"n":"Latios","r":"Holo"},"11":{"n":"Rayquaza","r":"Holo"},"12":{"n":"Axew","r":"Holo"},"13":{"n":"Axew","r":"Holo"},"14":{"n":"Fraxure","r":"Holo"},"15":{"n":"Fraxure","r":"Holo"},"16":{"n":"Haxorus","r":"Holo"},"17":{"n":"Druddigon","r":"Holo"},"20":{"n":"Super Rod","r":"Holo"}}},"bw7":{"sn":"Boundaries Crossed","sr":"Black & White","sd":"Black & White","rd":"2012-11-07","c":{"3":{"n":"Vileplume","r":"Holo"},"6":{"n":"Tangrowth","r":"Holo"},"9":{"n":"Celebi-EX","r":"Holo"},"13":{"n":"Serperior","r":"Holo"},"20":{"n":"Charizard","r":"Holo"},"26":{"n":"Emboar","r":"Holo"},"31":{"n":"Blastoise","r":"Holo"},"41":{"n":"Samurott","r":"Holo"},"47":{"n":"Keldeo","r":"Holo"},"49":{"n":"Keldeo-EX","r":"Holo"},"54":{"n":"Electivire","r":"Holo"},"57":{"n":"Zebstrika","r":"Holo"},"63":{"n":"Dusknoir","r":"Holo"},"67":{"n":"Cresselia-EX","r":"Holo"},"74":{"n":"Scolipede","r":"Holo"},"77":{"n":"Meloetta","r":"Holo"},"81":{"n":"Gliscor","r":"Holo"},"85":{"n":"Crustle","r":"Holo"},"89":{"n":"Landorus-EX","r":"Holo"},"91":{"n":"Liepard","r":"Holo"},"94":{"n":"Scizor","r":"Holo"},"99":{"n":"Flygon","r":"Holo"},"101":{"n":"Black Kyurem-EX","r":"Holo"},"103":{"n":"White Kyurem-EX","r":"Holo"},"108":{"n":"Ditto","r":"Holo"},"122":{"n":"Stoutland","r":"Holo"}}},"bw8":{"sn":"Plasma Storm","sr":"Black & White","sd":"Black & White","rd":"2013-02-06","c":{"14":{"n":"Moltres-EX","r":"Holo"},"17":{"n":"Infernape","r":"Holo"},"18":{"n":"Victini-EX","r":"Holo"},"25":{"n":"Articuno-EX","r":"Holo"},"34":{"n":"Manaphy","r":"Holo"},"46":{"n":"Magnezone","r":"Holo"},"48":{"n":"Zapdos-EX","r":"Holo"},"55":{"n":"Crobat","r":"Holo"},"58":{"n":"Weezing","r":"Holo"},"61":{"n":"Gallade","r":"Holo"},"66":{"n":"Garbodor","r":"Holo"},"78":{"n":"Lucario","r":"Holo"},"90":{"n":"Klinklang","r":"Holo"},"93":{"n":"Cobalion-EX","r":"Holo"},"95":{"n":"Black Kyurem-EX","r":"Holo"},"96":{"n":"White Kyurem-EX","r":"Holo"},"104":{"n":"Togekiss","r":"Holo"},"108":{"n":"Lugia-EX","r":"Holo"}}},"bw9":{"sn":"Plasma Freeze","sr":"Black & White","sd":"Black & White","rd":"2013-05-08","c":{"8":{"n":"Sceptile","r":"Holo"},"13":{"n":"Heatran-EX","r":"Holo"},"16":{"n":"Chandelure","r":"Holo"},"17":{"n":"Reshiram","r":"Holo"},"31":{"n":"Kyurem","r":"Holo"},"33":{"n":"Electrode","r":"Holo"},"38":{"n":"Thundurus-EX","r":"Holo"},"39":{"n":"Zekrom","r":"Holo"},"52":{"n":"Metagross","r":"Holo"},"53":{"n":"Deoxys-EX","r":"Holo"},"56":{"n":"Cofagrigus","r":"Holo"},"64":{"n":"Umbreon","r":"Holo"},"67":{"n":"Absol","r":"Holo"},"78":{"n":"Hydreigon","r":"Holo"},"83":{"n":"Dragonite","r":"Holo"},"84":{"n":"Kingdra","r":"Holo"},"85":{"n":"Latias-EX","r":"Holo"},"86":{"n":"Latios-EX","r":"Holo"},"98":{"n":"Tornadus-EX","r":"Holo"},"101":{"n":"Ghetsis","r":"Holo"}}},"bw10":{"sn":"Plasma Blast","sr":"Black & White","sd":"Black & White","rd":"2013-08-14","c":{"9":{"n":"Virizion-EX","r":"Holo"},"11":{"n":"Genesect-EX","r":"Holo"},"16":{"n":"Blastoise","r":"Holo"},"30":{"n":"Kyurem-EX","r":"Holo"},"33":{"n":"Eelektross","r":"Holo"},"37":{"n":"Mesprit","r":"Holo"},"41":{"n":"Sigilyph","r":"Holo"},"46":{"n":"Golurk","r":"Holo"},"49":{"n":"Machamp","r":"Holo"},"54":{"n":"Archeops","r":"Holo"},"56":{"n":"Houndoom","r":"Holo"},"60":{"n":"Jirachi-EX","r":"Holo"},"64":{"n":"Salamence","r":"Holo"},"65":{"n":"Dialga-EX","r":"Holo"},"66":{"n":"Palkia-EX","r":"Holo"},"69":{"n":"Haxorus","r":"Holo"},"74":{"n":"Porygon-Z","r":"Holo"}}},"bw11":{"sn":"Legendary Treasures","sr":"Black & White","sd":"Black & White","rd":"2013-11-06","c":{"8":{"n":"Serperior","r":"Holo"},"12":{"n":"Leavanny","r":"Holo"},"15":{"n":"Virizion","r":"Holo"},"16":{"n":"Genesect","r":"Holo"},"19":{"n":"Charizard","r":"Holo"},"22":{"n":"Moltres","r":"Holo"},"23":{"n":"Victini","r":"Holo"},"24":{"n":"Victini-EX","r":"Holo"},"27":{"n":"Emboar","r":"Holo"},"28":{"n":"Reshiram","r":"Holo"},"29":{"n":"Reshiram-EX","r":"Holo"},"32":{"n":"Articuno","r":"Holo"},"39":{"n":"Samurott","r":"Holo"},"43":{"n":"Kyurem","r":"Holo"},"44":{"n":"Kyurem-EX","r":"Holo"},"45":{"n":"Keldeo-EX","r":"Holo"},"46":{"n":"Zapdos","r":"Holo"},"50":{"n":"Thundurus","r":"Holo"},"51":{"n":"Zekrom","r":"Holo"},"52":{"n":"Zekrom-EX","r":"Holo"},"53":{"n":"Mewtwo","r":"Holo"},"54":{"n":"Mewtwo-EX","r":"Holo"},"66":{"n":"Sigilyph","r":"Holo"},"68":{"n":"Garbodor","r":"Holo"},"72":{"n":"Gothitelle","r":"Holo"},"77":{"n":"Chandelure-EX","r":"Holo"},"78":{"n":"Meloetta","r":"Holo"},"80":{"n":"Lucario","r":"Holo"},"82":{"n":"Excadrill-EX","r":"Holo"},"84":{"n":"Terrakion","r":"Holo"},"85":{"n":"Landorus","r":"Holo"},"88":{"n":"Darkrai-EX","r":"Holo"},"90":{"n":"Zoroark","r":"Holo"},"91":{"n":"Cobalion","r":"Holo"},"93":{"n":"Rayquaza","r":"Holo"},"96":{"n":"Garchomp","r":"Holo"},"99":{"n":"Hydreigon","r":"Holo"},"100":{"n":"Black Kyurem-EX","r":"Holo"},"101":{"n":"White Kyurem-EX","r":"Holo"},"102":{"n":"Lugia-EX","r":"Holo"},"105":{"n":"Cinccino","r":"Holo"},"108":{"n":"Tornadus","r":"Holo"}}},"xy1":{"sn":"XY","sr":"XY","sd":"XY","rd":"2014-02-05","c":{"1":{"n":"Venusaur-EX","r":"Holo"},"2":{"n":"M Venusaur-EX","r":"Holo"},"14":{"n":"Chesnaught","r":"Holo"},"17":{"n":"Vivillon","r":"Holo"},"19":{"n":"Gogoat","r":"Holo"},"26":{"n":"Delphox","r":"Holo"},"28":{"n":"Talonflame","r":"Holo"},"29":{"n":"Blastoise-EX","r":"Holo"},"30":{"n":"M Blastoise-EX","r":"Holo"},"35":{"n":"Lapras","r":"Holo"},"41":{"n":"Greninja","r":"Holo"},"43":{"n":"Raichu","r":"Holo"},"46":{"n":"Emolga-EX","r":"Holo"},"55":{"n":"Trevenant","r":"Holo"},"57":{"n":"Gourgeist","r":"Holo"},"62":{"n":"Rhyperior","r":"Holo"},"73":{"n":"Zoroark","r":"Holo"},"79":{"n":"Yveltal-EX","r":"Holo"},"80":{"n":"Skarmory-EX","r":"Holo"},"86":{"n":"Aegislash","r":"Holo"},"93":{"n":"Aromatisse","r":"Holo"},"95":{"n":"Slurpuff","r":"Holo"},"97":{"n":"Xerneas-EX","r":"Holo"},"114":{"n":"Furfrou","r":"Holo"}}},"xy2":{"sn":"Flashfire","sr":"XY","sd":"XY","rd":"2014-05-07","c":{"7":{"n":"Shiftry","r":"Holo"},"11":{"n":"Charizard-EX","r":"Holo"},"12":{"n":"Charizard-EX","r":"Holo"},"13":{"n":"M Charizard-EX","r":"Holo"},"20":{"n":"Pyroar","r":"Holo"},"23":{"n":"Milotic","r":"Holo"},"35":{"n":"Magnezone-EX","r":"Holo"},"40":{"n":"Dusknoir","r":"Holo"},"41":{"n":"Toxicroak-EX","r":"Holo"},"66":{"n":"Florges","r":"Holo"},"68":{"n":"Carbink","r":"Holo"},"69":{"n":"M Charizard-EX","r":"Holo"},"70":{"n":"Druddigon","r":"Holo"},"74":{"n":"Goodra","r":"Holo"},"78":{"n":"Kangaskhan-EX","r":"Holo"},"79":{"n":"M Kangaskhan-EX","r":"Holo"}}},"xy3":{"sn":"Furious Fists","sr":"XY","sd":"XY","rd":"2014-08-13","c":{"3":{"n":"Victreebel","r":"Holo"},"4":{"n":"Heracross-EX","r":"Holo"},"5":{"n":"M Heracross-EX","r":"Holo"},"14":{"n":"Blaziken","r":"Holo"},"17":{"n":"Poliwrath","r":"Holo"},"20":{"n":"Seismitoad-EX","r":"Holo"},"24":{"n":"Clawitzer","r":"Holo"},"46":{"n":"Machamp","r":"Holo"},"54":{"n":"Lucario-EX","r":"Holo"},"55":{"n":"M Lucario-EX","r":"Holo"},"58":{"n":"Landorus","r":"Holo"},"63":{"n":"Hawlucha","r":"Holo"},"64":{"n":"Hawlucha-EX","r":"Holo"},"74":{"n":"Dragonite-EX","r":"Holo"},"77":{"n":"Noivern","r":"Holo"},"83":{"n":"Slaking","r":"Holo"}}},"xy4":{"sn":"Phantom Forces","sr":"XY","sd":"XY","rd":"2014-11-05","c":{"12":{"n":"Pyroar","r":"Holo"},"17":{"n":"Feraligatr","r":"Holo"},"23":{"n":"Manectric-EX","r":"Holo"},"24":{"n":"M Manectric-EX","r":"Holo"},"30":{"n":"Heliolisk","r":"Holo"},"34":{"n":"Gengar-EX","r":"Holo"},"35":{"n":"M Gengar-EX","r":"Holo"},"43":{"n":"Chandelure","r":"Holo"},"45":{"n":"Gourgeist","r":"Holo"},"50":{"n":"Gigalith","r":"Holo"},"58":{"n":"Malamar-EX","r":"Holo"},"62":{"n":"Dialga-EX","r":"Holo"},"63":{"n":"Heatran","r":"Holo"},"65":{"n":"Aegislash-EX","r":"Holo"},"67":{"n":"Florges-EX","r":"Holo"},"69":{"n":"Slurpuff","r":"Holo"},"71":{"n":"Diancie","r":"Holo"},"74":{"n":"Hydreigon","r":"Holo"},"77":{"n":"Goodra","r":"Holo"},"86":{"n":"Regigigas","r":"Holo"},"97":{"n":"Head Ringer Team Flare Hyper Gear","r":"Holo"},"98":{"n":"Jamming Net Team Flare Hyper Gear","r":"Holo"}}},"xy5":{"sn":"Primal Clash","sr":"XY","sd":"XY","rd":"2015-02-04","c":{"9":{"n":"Sceptile","r":"Holo"},"12":{"n":"Ludicolo","r":"Holo"},"19":{"n":"Trevenant-EX","r":"Holo"},"28":{"n":"Blaziken","r":"Holo"},"29":{"n":"Camerupt-EX","r":"Holo"},"36":{"n":"Swampert","r":"Holo"},"38":{"n":"Wailord-EX","r":"Holo"},"44":{"n":"Milotic","r":"Holo"},"50":{"n":"Huntail","r":"Holo"},"54":{"n":"Kyogre-EX","r":"Holo"},"55":{"n":"Primal Kyogre-EX","r":"Holo"},"56":{"n":"Manaphy","r":"Holo"},"61":{"n":"Manectric","r":"Holo"},"65":{"n":"Eelektross","r":"Holo"},"77":{"n":"Rhyperior","r":"Holo"},"80":{"n":"Medicham","r":"Holo"},"85":{"n":"Groudon-EX","r":"Holo"},"86":{"n":"Primal Groudon-EX","r":"Holo"},"88":{"n":"Hippowdon","r":"Holo"},"91":{"n":"Sharpedo-EX","r":"Holo"},"92":{"n":"Crawdaunt","r":"Holo"},"93":{"n":"Aggron-EX","r":"Holo"},"94":{"n":"M Aggron-EX","r":"Holo"},"97":{"n":"Excadrill","r":"Holo"},"100":{"n":"Aegislash","r":"Holo"},"104":{"n":"Azumarill","r":"Holo"},"105":{"n":"Gardevoir-EX","r":"Holo"},"106":{"n":"M Gardevoir-EX","r":"Holo"},"108":{"n":"Kingdra","r":"Holo"},"110":{"n":"Flygon","r":"Holo"}}},"dc1":{"sn":"Double Crisis","sr":"XY","sd":"XY","rd":"2015-03-25","c":{"2":{"n":"Team Magma's Camerupt","r":"Holo"},"5":{"n":"Team Aqua's Walrein","r":"Holo"},"8":{"n":"Team Aqua's Muk","r":"Holo"},"11":{"n":"Team Magma's Claydol","r":"Holo"},"14":{"n":"Team Magma's Aggron","r":"Holo"},"21":{"n":"Team Aqua's Sharpedo","r":"Holo"}}},"xy6":{"sn":"Roaring Skies","sr":"XY","sd":"XY","rd":"2015-05-06","c":{"5":{"n":"Beautifly","r":"Holo"},"26":{"n":"Thundurus-EX","r":"Holo"},"33":{"n":"Deoxys","r":"Holo"},"34":{"n":"Gallade-EX","r":"Holo"},"35":{"n":"M Gallade-EX","r":"Holo"},"40":{"n":"Absol","r":"Holo"},"42":{"n":"Jirachi","r":"Holo"},"46":{"n":"Togekiss","r":"Holo"},"52":{"n":"Dragonite","r":"Holo"},"57":{"n":"Salamence","r":"Holo"},"58":{"n":"Latios-EX","r":"Holo"},"59":{"n":"M Latios-EX","r":"Holo"},"60":{"n":"Rayquaza-EX","r":"Holo"},"61":{"n":"M Rayquaza-EX","r":"Holo"},"62":{"n":"Hydreigon-EX","r":"Holo"},"63":{"n":"Reshiram","r":"Holo"},"64":{"n":"Zekrom","r":"Holo"},"72":{"n":"Swellow","r":"Holo"},"75":{"n":"Rayquaza-EX","r":"Holo"},"76":{"n":"M Rayquaza-EX","r":"Holo"},"77":{"n":"Shaymin-EX","r":"Holo"}}},"xy7":{"sn":"Ancient Origins","sr":"XY","sd":"XY","rd":"2015-08-12","c":{"7":{"n":"Sceptile-EX","r":"Holo"},"8":{"n":"M Sceptile-EX","r":"Holo"},"12":{"n":"Virizion","r":"Holo"},"15":{"n":"Entei","r":"Holo"},"17":{"n":"Volcarona","r":"Holo"},"21":{"n":"Gyarados","r":"Holo"},"25":{"n":"Kyurem-EX","r":"Holo"},"26":{"n":"Jolteon","r":"Holo"},"27":{"n":"Ampharos-EX","r":"Holo"},"28":{"n":"M Ampharos-EX","r":"Holo"},"36":{"n":"Hoopa-EX","r":"Holo"},"37":{"n":"Machamp-EX","r":"Holo"},"42":{"n":"Tyranitar-EX","r":"Holo"},"43":{"n":"M Tyranitar-EX","r":"Holo"},"54":{"n":"Gardevoir","r":"Holo"},"57":{"n":"Giratina-EX","r":"Holo"},"60":{"n":"Goodra","r":"Holo"},"67":{"n":"Porygon-Z","r":"Holo"},"68":{"n":"Lugia-EX","r":"Holo"}}},"xy8":{"sn":"BREAKthrough","sr":"XY","sd":"XY","rd":"2015-11-04","c":{"11":{"n":"Chesnaught","r":"Holo"},"15":{"n":"Vivillon","r":"Holo"},"20":{"n":"Typhlosion","r":"Holo"},"21":{"n":"Houndoom-EX","r":"Holo"},"22":{"n":"M Houndoom-EX","r":"Holo"},"33":{"n":"Octillery","r":"Holo"},"34":{"n":"Glalie-EX","r":"Holo"},"35":{"n":"M Glalie-EX","r":"Holo"},"38":{"n":"Empoleon","r":"Holo"},"54":{"n":"Magnezone","r":"Holo"},"55":{"n":"Raikou","r":"Holo"},"60":{"n":"Gengar","r":"Holo"},"61":{"n":"Mewtwo-EX","r":"Holo"},"62":{"n":"Mewtwo-EX","r":"Holo"},"63":{"n":"M Mewtwo-EX","r":"Holo"},"64":{"n":"M Mewtwo-EX","r":"Holo"},"66":{"n":"Mismagius","r":"Holo"},"82":{"n":"Mamoswine","r":"Holo"},"84":{"n":"Gallade","r":"Holo"},"85":{"n":"Meloetta","r":"Holo"},"91":{"n":"Zoroark","r":"Holo"},"94":{"n":"Yveltal","r":"Holo"},"107":{"n":"Xerneas","r":"Holo"},"111":{"n":"Haxorus","r":"Holo"}}},"xy9":{"sn":"BREAKpoint","sr":"XY","sd":"XY","rd":"2016-02-03","c":{"3":{"n":"Meganium","r":"Holo"},"14":{"n":"Emboar-EX","r":"Holo"},"21":{"n":"Slowking","r":"Holo"},"26":{"n":"Gyarados-EX","r":"Holo"},"27":{"n":"M Gyarados-EX","r":"Holo"},"30":{"n":"Suicune","r":"Holo"},"31":{"n":"Palkia-EX","r":"Holo"},"32":{"n":"Manaphy-EX","r":"Holo"},"52":{"n":"Espeon-EX","r":"Holo"},"57":{"n":"Garbodor","r":"Holo"},"62":{"n":"Aegislash","r":"Holo"},"70":{"n":"Garchomp","r":"Holo"},"74":{"n":"Darkrai-EX","r":"Holo"},"76":{"n":"Scizor-EX","r":"Holo"},"77":{"n":"M Scizor-EX","r":"Holo"},"83":{"n":"Togekiss-EX","r":"Holo"},"86":{"n":"Dragalge","r":"Holo"},"92":{"n":"Ho-Oh-EX","r":"Holo"}}},"g1":{"sn":"Generations","sr":"XY","sd":"XY","rd":"2016-02-22","c":{"1":{"n":"Venusaur-EX","r":"Holo"},"2":{"n":"M Venusaur-EX","r":"Holo"},"5":{"n":"Butterfree","r":"Holo"},"10":{"n":"Leafeon-EX","r":"Holo"},"11":{"n":"Charizard-EX","r":"Holo"},"12":{"n":"M Charizard-EX","r":"Holo"},"13":{"n":"Ninetales-EX","r":"Holo"},"17":{"n":"Blastoise-EX","r":"Holo"},"18":{"n":"M Blastoise-EX","r":"Holo"},"24":{"n":"Vaporeon-EX","r":"Holo"},"25":{"n":"Articuno","r":"Holo"},"27":{"n":"Raichu","r":"Holo"},"28":{"n":"Jolteon-EX","r":"Holo"},"29":{"n":"Zapdos","r":"Holo"},"35":{"n":"Gengar","r":"Holo"},"37":{"n":"Meowstic-EX","r":"Holo"},"42":{"n":"Machamp","r":"Holo"},"45":{"n":"Golem","r":"Holo"},"46":{"n":"Golem-EX","r":"Holo"},"RC21":{"n":"Sylveon-EX","r":"Holo"},"RC6":{"n":"Flareon-EX","r":"Holo"}}},"xy10":{"sn":"Fates Collide","sr":"XY","sd":"XY","rd":"2016-05-02","c":{"13":{"n":"Delphox","r":"Holo"},"20":{"n":"Glaceon-EX","r":"Holo"},"21":{"n":"White Kyurem","r":"Holo"},"25":{"n":"Alakazam-EX","r":"Holo"},"26":{"n":"M Alakazam-EX","r":"Holo"},"29":{"n":"Mew","r":"Holo"},"43":{"n":"Regirock-EX","r":"Holo"},"54":{"n":"Zygarde-EX","r":"Holo"},"55":{"n":"Umbreon-EX","r":"Holo"},"56":{"n":"Tyranitar","r":"Holo"},"63":{"n":"Lucario","r":"Holo"},"64":{"n":"Genesect-EX","r":"Holo"},"69":{"n":"M Altaria-EX","r":"Holo"},"72":{"n":"Diancie-EX","r":"Holo"},"73":{"n":"Kingdra-EX","r":"Holo"},"83":{"n":"Altaria-EX","r":"Holo"},"84":{"n":"Audino-EX","r":"Holo"},"85":{"n":"M Audino-EX","r":"Holo"}}},"xy11":{"sn":"Steam Siege","sr":"XY","sd":"XY","rd":"2016-08-03","c":{"11":{"n":"Shiftry","r":"Holo"},"20":{"n":"Infernape","r":"Holo"},"26":{"n":"Volcanion-EX","r":"Holo"},"40":{"n":"Ampharos","r":"Holo"},"50":{"n":"Chandelure","r":"Holo"},"64":{"n":"Bisharp","r":"Holo"},"65":{"n":"Yveltal","r":"Holo"},"67":{"n":"Steelix-EX","r":"Holo"},"68":{"n":"M Steelix-EX","r":"Holo"},"73":{"n":"Klinklang","r":"Holo"},"75":{"n":"Magearna-EX","r":"Holo"},"78":{"n":"Gardevoir-EX","r":"Holo"},"79":{"n":"M Gardevoir-EX","r":"Holo"},"81":{"n":"Xerneas","r":"Holo"},"86":{"n":"Hydreigon","r":"Holo"}}},"xy12":{"sn":"Evolutions","sr":"XY","sd":"XY","rd":"2016-11-02","c":{"1":{"n":"Venusaur-EX","r":"Holo"},"2":{"n":"M Venusaur-EX","r":"Holo"},"11":{"n":"Charizard","r":"Holo"},"12":{"n":"Charizard-EX","r":"Holo"},"13":{"n":"M Charizard-EX","r":"Holo"},"15":{"n":"Ninetales","r":"Holo"},"21":{"n":"Blastoise-EX","r":"Holo"},"22":{"n":"M Blastoise-EX","r":"Holo"},"25":{"n":"Poliwrath","r":"Holo"},"26":{"n":"Slowbro-EX","r":"Holo"},"27":{"n":"M Slowbro-EX","r":"Holo"},"34":{"n":"Gyarados","r":"Holo"},"36":{"n":"Raichu","r":"Holo"},"38":{"n":"Magneton","r":"Holo"},"42":{"n":"Zapdos","r":"Holo"},"45":{"n":"Nidoking","r":"Holo"},"52":{"n":"Mewtwo-EX","r":"Holo"},"53":{"n":"Mew","r":"Holo"},"59":{"n":"Machamp","r":"Holo"},"62":{"n":"Hitmonchan","r":"Holo"},"63":{"n":"Clefairy","r":"Holo"},"64":{"n":"Pidgeot-EX","r":"Holo"},"65":{"n":"M Pidgeot-EX","r":"Holo"},"70":{"n":"Chansey","r":"Holo"},"72":{"n":"Dragonite-EX","r":"Holo"}}},"sm1":{"sn":"Sun & Moon","sr":"Sun & Moon","sd":"Sun & Moon","rd":"2017-02-03","c":{"12":{"n":"Decidueye-GX","r":"Holo"},"15":{"n":"Lurantis-GX","r":"Holo"},"17":{"n":"Shiinotic","r":"Holo"},"20":{"n":"Tsareena","r":"Holo"},"22":{"n":"Arcanine","r":"Holo"},"27":{"n":"Incineroar-GX","r":"Holo"},"32":{"n":"Poliwrath","r":"Holo"},"35":{"n":"Lapras-GX","r":"Holo"},"42":{"n":"Primarina-GX","r":"Holo"},"52":{"n":"Vikavolt","r":"Holo"},"56":{"n":"Crobat","r":"Holo"},"58":{"n":"Alolan Muk","r":"Holo"},"61":{"n":"Espeon-GX","r":"Holo"},"63":{"n":"Toxapex","r":"Holo"},"66":{"n":"Lunala-GX","r":"Holo"},"71":{"n":"Gigalith","r":"Holo"},"80":{"n":"Umbreon-GX","r":"Holo"},"82":{"n":"Sharpedo","r":"Holo"},"85":{"n":"Krookodile","r":"Holo"},"87":{"n":"Alolan Dugtrio","r":"Holo"},"89":{"n":"Solgaleo-GX","r":"Holo"},"93":{"n":"Ribombee","r":"Holo"},"96":{"n":"Dragonite","r":"Holo"},"99":{"n":"Kangaskhan","r":"Holo"},"100":{"n":"Tauros-GX","r":"Holo"},"110":{"n":"Gumshoos-GX","r":"Holo"},"113":{"n":"Oranguru","r":"Holo"}}},"sm2":{"sn":"Guardians Rising","sr":"Sun & Moon","sd":"Sun & Moon","rd":"2017-05-05","c":{"9":{"n":"Golisopod","r":"Holo"},"10":{"n":"Victini","r":"Holo"},"13":{"n":"Chandelure","r":"Holo"},"18":{"n":"Turtonator-GX","r":"Holo"},"22":{"n":"Alolan Ninetales-GX","r":"Holo"},"25":{"n":"Politoed","r":"Holo"},"38":{"n":"Wishiwashi-GX","r":"Holo"},"42":{"n":"Alolan Golem","r":"Holo"},"45":{"n":"Vikavolt-GX","r":"Holo"},"47":{"n":"Tapu Koko-GX","r":"Holo"},"57":{"n":"Toxapex-GX","r":"Holo"},"58":{"n":"Mimikyu","r":"Holo"},"59":{"n":"Dhelmise","r":"Holo"},"60":{"n":"Tapu Lele-GX","r":"Holo"},"60a":{"n":"Tapu Lele-GX","r":"Holo"},"65":{"n":"Machamp","r":"Holo"},"74":{"n":"Lycanroc-GX","r":"Holo"},"76":{"n":"Mudsdale","r":"Holo"},"77":{"n":"Minior","r":"Holo"},"81":{"n":"Absol","r":"Holo"},"85":{"n":"Metagross-GX","r":"Holo"},"92":{"n":"Sylveon-GX","r":"Holo"},"92a":{"n":"Sylveon-GX","r":"Holo"},"93":{"n":"Comfey","r":"Holo"},"96":{"n":"Goodra","r":"Holo"},"97":{"n":"Drampa","r":"Holo"},"100":{"n":"Kommo-o-GX","r":"Holo"},"102":{"n":"Blissey","r":"Holo"},"115":{"n":"Drampa-GX","r":"Holo"}}},"sm3":{"sn":"Burning Shadows","sr":"Sun & Moon","sd":"Sun & Moon","rd":"2017-08-05","c":{"6":{"n":"Vileplume","r":"Holo"},"17":{"n":"Golisopod-GX","r":"Holo"},"20":{"n":"Charizard-GX","r":"Holo"},"21":{"n":"Ho-Oh-GX","r":"Holo"},"25":{"n":"Salazzle-GX","r":"Holo"},"31":{"n":"Kingdra","r":"Holo"},"33":{"n":"Gyarados","r":"Holo"},"39":{"n":"Tapu Fini-GX","r":"Holo"},"39a":{"n":"Tapu Fini-GX","r":"Holo"},"41":{"n":"Raichu","r":"Holo"},"53":{"n":"Dusknoir","r":"Holo"},"62":{"n":"Palossand","r":"Holo"},"63":{"n":"Necrozma-GX","r":"Holo"},"64":{"n":"Machamp-GX","r":"Holo"},"67":{"n":"Rhyperior","r":"Holo"},"71":{"n":"Lucario","r":"Holo"},"75":{"n":"Lycanroc","r":"Holo"},"80":{"n":"Marshadow-GX","r":"Holo"},"84":{"n":"Alolan Muk-GX","r":"Holo"},"87":{"n":"Darkrai","r":"Holo"},"88":{"n":"Darkrai-GX","r":"Holo"},"88a":{"n":"Darkrai-GX","r":"Holo"},"93":{"n":"Gardevoir-GX","r":"Holo"},"94":{"n":"Diancie","r":"Holo"},"99":{"n":"Noivern-GX","r":"Holo"},"100":{"n":"Zygarde","r":"Holo"},"105":{"n":"Porygon-Z","r":"Holo"},"105a":{"n":"Porygon-Z","r":"Holo"}}},"sm35":{"sn":"Shining Legends","sr":"Sun & Moon","sd":"Sun & Moon","rd":"2017-10-06","c":{"7":{"n":"Shaymin","r":"Holo"},"8":{"n":"Virizion","r":"Holo"},"10":{"n":"Entei-GX","r":"Holo"},"10a":{"n":"Entei-GX","r":"Holo"},"14":{"n":"Reshiram","r":"Holo"},"24":{"n":"Palkia","r":"Holo"},"25":{"n":"Manaphy","r":"Holo"},"26":{"n":"Keldeo","r":"Holo"},"29":{"n":"Raichu-GX","r":"Holo"},"32":{"n":"Raikou","r":"Holo"},"35":{"n":"Zekrom","r":"Holo"},"39":{"n":"Mewtwo-GX","r":"Holo"},"41":{"n":"Latios","r":"Holo"},"45":{"n":"Marshadow","r":"Holo"},"53":{"n":"Zoroark-GX","r":"Holo"},"54":{"n":"Yveltal","r":"Holo"},"55":{"n":"Hoopa","r":"Holo"}}},"sm4":{"sn":"Crimson Invasion","sr":"Sun & Moon","sd":"Sun & Moon","rd":"2017-11-03","c":{"11":{"n":"Gogoat","r":"Holo"},"12":{"n":"Alolan Marowak","r":"Holo"},"18":{"n":"Gyarados-GX","r":"Holo"},"27":{"n":"Milotic","r":"Holo"},"28":{"n":"Regice","r":"Holo"},"31":{"n":"Alolan Raichu","r":"Holo"},"34":{"n":"Alolan Golem-GX","r":"Holo"},"38":{"n":"Gengar","r":"Holo"},"47":{"n":"Salazzle","r":"Holo"},"49":{"n":"Nihilego-GX","r":"Holo"},"56":{"n":"Bewear","r":"Holo"},"57":{"n":"Buzzwole-GX","r":"Holo"},"63":{"n":"Guzzlord-GX","r":"Holo"},"63a":{"n":"Guzzlord-GX","r":"Holo"},"67":{"n":"Aggron","r":"Holo"},"70":{"n":"Kartana-GX","r":"Holo"},"73":{"n":"Xerneas","r":"Holo"},"74":{"n":"Alolan Exeggutor-GX","r":"Holo"},"84":{"n":"Regigigas","r":"Holo"},"84a":{"n":"Regigigas","r":"Holo"},"89":{"n":"Type: Null","r":"Holo"},"90":{"n":"Silvally-GX","r":"Holo"}}},"sm5":{"sn":"Ultra Prism","sr":"Sun & Moon","sd":"Sun & Moon","rd":"2018-02-02","c":{"9":{"n":"Torterra","r":"Holo"},"13":{"n":"Leafeon-GX","r":"Holo"},"15":{"n":"Shaymin","r":"Holo"},"19":{"n":"Magmortar","r":"Holo"},"23":{"n":"Infernape","r":"Holo"},"39":{"n":"Glaceon-GX","r":"Holo"},"48":{"n":"Luxray","r":"Holo"},"59":{"n":"Cresselia","r":"Holo"},"63":{"n":"Dawn Wings Necrozma-GX","r":"Holo"},"65":{"n":"Rampardos","r":"Holo"},"67":{"n":"Lucario","r":"Holo"},"74":{"n":"Weavile","r":"Holo"},"83":{"n":"Magnezone","r":"Holo"},"85":{"n":"Bastiodon","r":"Holo"},"88":{"n":"Heatran","r":"Holo"},"90":{"n":"Dusk Mane Necrozma-GX","r":"Holo"},"100":{"n":"Dialga-GX","r":"Holo"},"101":{"n":"Palkia-GX","r":"Holo"},"116":{"n":"Silvally-GX","r":"Holo"},"117":{"n":"Drampa","r":"Holo"}}},"sm6":{"sn":"Forbidden Light","sr":"Sun & Moon","sd":"Sun & Moon","rd":"2018-05-04","c":{"11":{"n":"Pheromosa","r":"Holo"},"17":{"n":"Delphox","r":"Holo"},"19":{"n":"Pyroar","r":"Holo"},"20":{"n":"Palkia-GX","r":"Holo"},"24":{"n":"Greninja-GX","r":"Holo"},"28":{"n":"Aurorus","r":"Holo"},"56":{"n":"Naganadel-GX","r":"Holo"},"59":{"n":"Infernape","r":"Holo"},"62":{"n":"Garchomp","r":"Holo"},"69":{"n":"Tyrantrum","r":"Holo"},"73":{"n":"Zygarde-GX","r":"Holo"},"79":{"n":"Yveltal-GX","r":"Holo"},"80":{"n":"Guzzlord","r":"Holo"},"81":{"n":"Empoleon","r":"Holo"},"82":{"n":"Dialga-GX","r":"Holo"},"90":{"n":"Xerneas-GX","r":"Holo"},"94":{"n":"Goodra","r":"Holo"},"95":{"n":"Ultra Necrozma-GX","r":"Holo"},"105":{"n":"Diantha","r":"Holo"}}},"sm7":{"sn":"Celestial Storm","sr":"Sun & Moon","sd":"Sun & Moon","rd":"2018-08-03","c":{"3":{"n":"Victreebel","r":"Holo"},"6":{"n":"Ariados","r":"Holo"},"10a":{"n":"Sceptile","r":"Holo"},"14":{"n":"Shiftry-GX","r":"Holo"},"28":{"n":"Blaziken-GX","r":"Holo"},"31":{"n":"Articuno-GX","r":"Holo"},"38":{"n":"Ludicolo","r":"Holo"},"46":{"n":"Kyogre","r":"Holo"},"48":{"n":"Electrode-GX","r":"Holo"},"56":{"n":"Mr. Mime-GX","r":"Holo"},"61":{"n":"Lunatone","r":"Holo"},"66":{"n":"Banette-GX","r":"Holo"},"67":{"n":"Deoxys","r":"Holo"},"70":{"n":"Lunala","r":"Holo"},"81":{"n":"Groudon","r":"Holo"},"82":{"n":"Palossand-GX","r":"Holo"},"85":{"n":"Alolan Raticate-GX","r":"Holo"},"87":{"n":"Tyranitar","r":"Holo"},"89":{"n":"Steelix","r":"Holo"},"90":{"n":"Scizor-GX","r":"Holo"},"95":{"n":"Metagross","r":"Holo"},"98":{"n":"Heatran","r":"Holo"},"99":{"n":"Solgaleo","r":"Holo"},"100":{"n":"Celesteela","r":"Holo"},"102":{"n":"Stakataka-GX","r":"Holo"},"106":{"n":"Salamence","r":"Holo"},"109":{"n":"Rayquaza-GX","r":"Holo"},"115":{"n":"Slaking","r":"Holo"},"121":{"n":"Delcatty","r":"Holo"},"145":{"n":"Steven's Resolve","r":"Holo"}}},"sm75":{"sn":"Dragon Majesty","sr":"Sun & Moon","sd":"Sun & Moon","rd":"2018-09-07","c":{"3":{"n":"Charizard","r":"Holo"},"6":{"n":"Blaziken","r":"Holo"},"11":{"n":"Reshiram-GX","r":"Holo"},"18":{"n":"Kingdra-GX","r":"Holo"},"20":{"n":"Gyarados","r":"Holo"},"24":{"n":"Feraligatr","r":"Holo"},"33":{"n":"Hydreigon","r":"Holo"},"37":{"n":"Dragonite-GX","r":"Holo"},"40":{"n":"Altaria","r":"Holo"},"40a":{"n":"Altaria","r":"Holo"},"41":{"n":"Altaria-GX","r":"Holo"},"44":{"n":"Salamence-GX","r":"Holo"},"46":{"n":"Zekrom","r":"Holo"},"47":{"n":"Kyurem","r":"Holo"},"48":{"n":"White Kyurem-GX","r":"Holo"},"54":{"n":"Kommo-o","r":"Holo"},"58":{"n":"Blaine's Last Stand","r":"Holo"}}},"sm8":{"sn":"Lost Thunder","sr":"Sun & Moon","sd":"Sun & Moon","rd":"2018-11-02","c":{"8":{"n":"Meganium","r":"Holo"},"14":{"n":"Jumpluff","r":"Holo"},"17":{"n":"Shuckle-GX","r":"Holo"},"22":{"n":"Sceptile-GX","r":"Holo"},"33":{"n":"Shaymin","r":"Holo"},"34":{"n":"Virizion-GX","r":"Holo"},"37":{"n":"Tapu Bulu","r":"Holo"},"42":{"n":"Typhlosion","r":"Holo"},"44":{"n":"Magcargo-GX","r":"Holo"},"48":{"n":"Heatran","r":"Holo"},"52":{"n":"Blacephalon-GX","r":"Holo"},"59":{"n":"Suicune","r":"Holo"},"60":{"n":"Suicune-GX","r":"Holo"},"63":{"n":"White Kyurem","r":"Holo"},"78":{"n":"Ampharos","r":"Holo"},"85":{"n":"Tapu Koko","r":"Holo"},"86":{"n":"Zeraora-GX","r":"Holo"},"97":{"n":"Giratina","r":"Holo"},"98":{"n":"Sigilyph-GX","r":"Holo"},"103":{"n":"Chandelure","r":"Holo"},"106":{"n":"Nihilego","r":"Holo"},"108":{"n":"Naganadel","r":"Holo"},"121":{"n":"Tyranitar-GX","r":"Holo"},"126":{"n":"Scizor","r":"Holo"},"127":{"n":"Dialga","r":"Holo"},"129":{"n":"Cobalion","r":"Holo"},"130":{"n":"Genesect-GX","r":"Holo"},"132":{"n":"Alolan Ninetales-GX","r":"Holo"},"141":{"n":"Gardevoir","r":"Holo"},"149":{"n":"Mimikyu-GX","r":"Holo"},"150":{"n":"Tapu Lele","r":"Holo"},"151":{"n":"Tapu Fini","r":"Holo"},"153":{"n":"Blissey","r":"Holo"},"159":{"n":"Lugia-GX","r":"Holo"}}},"sm9":{"sn":"Team Up","sr":"Sun & Moon","sd":"Sun & Moon","rd":"2019-02-01","c":{"1":{"n":"Celebi & Venusaur-GX","r":"Holo"},"19":{"n":"Moltres","r":"Holo"},"30":{"n":"Gyarados","r":"Holo"},"32":{"n":"Articuno","r":"Holo"},"33":{"n":"Pikachu & Zekrom-GX","r":"Holo"},"39":{"n":"Electrode","r":"Holo"},"40":{"n":"Zapdos","r":"Holo"},"43":{"n":"Ampharos-GX","r":"Holo"},"52":{"n":"Zeraora","r":"Holo"},"53":{"n":"Gengar & Mimikyu-GX","r":"Holo"},"67":{"n":"Mr. Mime-GX","r":"Holo"},"76":{"n":"Omastar","r":"Holo"},"82":{"n":"Lycanroc-GX","r":"Holo"},"85":{"n":"Tyranitar","r":"Holo"},"88":{"n":"Absol","r":"Holo"},"91":{"n":"Zoroark","r":"Holo"},"95":{"n":"Yveltal","r":"Holo"},"96":{"n":"Hoopa-GX","r":"Holo"},"97":{"n":"Incineroar-GX","r":"Holo"},"99":{"n":"Jirachi","r":"Holo"},"106":{"n":"Cobalion-GX","r":"Holo"},"109":{"n":"Aegislash","r":"Holo"},"111":{"n":"Alolan Ninetales","r":"Holo"},"113":{"n":"Latias & Latios-GX","r":"Holo"},"119":{"n":"Dragonite","r":"Holo"},"120":{"n":"Eevee & Snorlax-GX","r":"Holo"},"131":{"n":"Lugia","r":"Holo"},"132":{"n":"Zangoose","r":"Holo"},"133":{"n":"Bill's Analysis","r":"Holo"},"140":{"n":"Erika's Hospitality","r":"Holo"}}},"sm10":{"sn":"Unbroken Bonds","sr":"Sun & Moon","sd":"Sun & Moon","rd":"2019-05-03","c":{"1":{"n":"Pheromosa & Buzzwole-GX","r":"Holo"},"8":{"n":"Vileplume","r":"Holo"},"12":{"n":"Venomoth-GX","r":"Holo"},"19":{"n":"Kartana","r":"Holo"},"20":{"n":"Reshiram & Charizard-GX","r":"Holo"},"22":{"n":"Arcanine","r":"Holo"},"25":{"n":"Volcanion","r":"Holo"},"35":{"n":"Blastoise-GX","r":"Holo"},"43":{"n":"Slowbro","r":"Holo"},"50":{"n":"Kyurem","r":"Holo"},"57":{"n":"Dedenne-GX","r":"Holo"},"59":{"n":"Vikavolt","r":"Holo"},"61":{"n":"Muk & Alolan Muk-GX","r":"Holo"},"66":{"n":"Crobat","r":"Holo"},"76":{"n":"Mew","r":"Holo"},"81":{"n":"Marshadow","r":"Holo"},"82":{"n":"Marshadow & Machamp-GX","r":"Holo"},"89":{"n":"Golem","r":"Holo"},"103":{"n":"Landorus","r":"Holo"},"106":{"n":"Stakataka","r":"Holo"},"107":{"n":"Greninja & Zoroark-GX","r":"Holo"},"109":{"n":"Honchkrow-GX","r":"Holo"},"112":{"n":"Spiritomb","r":"Holo"},"117":{"n":"Greninja","r":"Holo"},"119":{"n":"Malamar","r":"Holo"},"120":{"n":"Lucario & Melmetal-GX","r":"Holo"},"126":{"n":"Lucario","r":"Holo"},"129":{"n":"Melmetal","r":"Holo"},"130":{"n":"Gardevoir & Sylveon-GX","r":"Holo"},"138":{"n":"Togekiss","r":"Holo"},"140":{"n":"Whimsicott-GX","r":"Holo"},"149":{"n":"Persian-GX","r":"Holo"},"157":{"n":"Porygon-Z","r":"Holo"},"158":{"n":"Snorlax","r":"Holo"},"163":{"n":"Celesteela-GX","r":"Holo"},"184":{"n":"Red's Challenge","r":"Holo"}}},"sm11":{"sn":"Unified Minds","sr":"Sun & Moon","sd":"Sun & Moon","rd":"2019-08-02","c":{"1":{"n":"Rowlet & Alolan Exeggutor-GX","r":"Holo"},"4":{"n":"Celebi","r":"Holo"},"19":{"n":"Tsareena","r":"Holo"},"25":{"n":"Heatran-GX","r":"Holo"},"26":{"n":"Victini","r":"Holo"},"30":{"n":"Chandelure","r":"Holo"},"35":{"n":"Slowpoke & Psyduck-GX","r":"Holo"},"38":{"n":"Froslass","r":"Holo"},"47":{"n":"Keldeo-GX","r":"Holo"},"51":{"n":"Golisopod","r":"Holo"},"54":{"n":"Raichu & Alolan Raichu-GX","r":"Holo"},"57":{"n":"Alolan Raichu","r":"Holo"},"60":{"n":"Magnezone","r":"Holo"},"66":{"n":"Eelektross","r":"Holo"},"69":{"n":"Tapu Koko","r":"Holo"},"71":{"n":"Mewtwo & Mew-GX","r":"Holo"},"72":{"n":"Espeon & Deoxys-GX","r":"Holo"},"78":{"n":"Latios-GX","r":"Holo"},"79":{"n":"Jirachi-GX","r":"Holo"},"83":{"n":"Uxie","r":"Holo"},"86":{"n":"Giratina","r":"Holo"},"95":{"n":"Aegislash","r":"Holo"},"106":{"n":"Aerodactyl-GX","r":"Holo"},"114":{"n":"Garchomp","r":"Holo"},"122":{"n":"Terrakion","r":"Holo"},"125":{"n":"Umbreon & Darkrai-GX","r":"Holo"},"126":{"n":"Mega Sableye & Tyranitar-GX","r":"Holo"},"132":{"n":"Weavile-GX","r":"Holo"},"139":{"n":"Yveltal","r":"Holo"},"140":{"n":"Hoopa","r":"Holo"},"141":{"n":"Mawile-GX","r":"Holo"},"146":{"n":"Garchomp & Giratina-GX","r":"Holo"},"152":{"n":"Dragonite-GX","r":"Holo"},"156":{"n":"Haxorus","r":"Holo"},"160":{"n":"Naganadel-GX","r":"Holo"},"163":{"n":"Kangaskhan","r":"Holo"},"170":{"n":"Slaking","r":"Holo"},"184":{"n":"Silvally","r":"Holo"}}},"sm115":{"sn":"Hidden Fates","sr":"Sun & Moon","sd":"Sun & Moon","rd":"2019-08-23","c":{"6":{"n":"Pinsir-GX","r":"Holo"},"9":{"n":"Charizard-GX","r":"Holo"},"14":{"n":"Starmie-GX","r":"Holo"},"16":{"n":"Gyarados-GX","r":"Holo"},"18":{"n":"Vaporeon","r":"Holo"},"20":{"n":"Raichu-GX","r":"Holo"},"24":{"n":"Zapdos","r":"Holo"},"31":{"n":"Mewtwo-GX","r":"Holo"},"36":{"n":"Onix-GX","r":"Holo"},"42":{"n":"Wigglytuff-GX","r":"Holo"},"44":{"n":"Moltres & Zapdos & Articuno-GX","r":"Holo"},"48":{"n":"Eevee","r":"Holo"},"55":{"n":"Brock's Training","r":"Holo"},"58":{"n":"Jessie & James","r":"Holo"},"63":{"n":"Misty's Water Command","r":"Holo"}}},"sm12":{"sn":"Cosmic Eclipse","sr":"Sun & Moon","sd":"Sun & Moon","rd":"2019-11-01","c":{"1":{"n":"Venusaur & Snivy-GX","r":"Holo"},"4":{"n":"Vileplume-GX","r":"Holo"},"16":{"n":"Sawsbuck","r":"Holo"},"20":{"n":"Decidueye","r":"Holo"},"21":{"n":"Buzzwole","r":"Holo"},"22":{"n":"Charizard & Braixen-GX","r":"Holo"},"30":{"n":"Victini","r":"Holo"},"35":{"n":"Volcarona-GX","r":"Holo"},"38":{"n":"Blastoise & Piplup-GX","r":"Holo"},"61":{"n":"Black Kyurem","r":"Holo"},"62":{"n":"Wishiwashi","r":"Holo"},"63":{"n":"Wishiwashi-GX","r":"Holo"},"69":{"n":"Magneton","r":"Holo"},"75":{"n":"Solgaleo & Lunala-GX","r":"Holo"},"82":{"n":"Gallade","r":"Holo"},"85":{"n":"Dusknoir","r":"Holo"},"95":{"n":"Oricorio-GX","r":"Holo"},"102":{"n":"Lunala","r":"Holo"},"104":{"n":"Blacephalon","r":"Holo"},"110":{"n":"Flygon-GX","r":"Holo"},"115":{"n":"Excadrill","r":"Holo"},"124":{"n":"Lycanroc","r":"Holo"},"129":{"n":"Alolan Persian-GX","r":"Holo"},"136":{"n":"Guzzlord","r":"Holo"},"139":{"n":"Steelix","r":"Holo"},"142":{"n":"Solgaleo","r":"Holo"},"143":{"n":"Togepi & Cleffa & Igglybuff-GX","r":"Holo"},"145":{"n":"Alolan Ninetales","r":"Holo"},"152":{"n":"Florges","r":"Holo"},"156":{"n":"Arceus & Dialga & Palkia-GX","r":"Holo"},"157":{"n":"Reshiram & Zekrom-GX","r":"Holo"},"158":{"n":"Naganadel & Guzzlord-GX","r":"Holo"},"163":{"n":"Kommo-o","r":"Holo"},"164":{"n":"Ultra Necrozma","r":"Holo"},"165":{"n":"Mega Lopunny & Jigglypuff-GX","r":"Holo"},"176":{"n":"Stoutland","r":"Holo"},"184":{"n":"Silvally-GX","r":"Holo"},"204":{"n":"Rosa","r":"Holo"}}}};
+const API_BASE='https://pkm-proxy.collectorheadscollectibles.workers.dev/api/v2';
 
-const SETS = {
-  "Scarlet & Violet 151": {
-    searchName: "151",
-    cards: {
-      "166/165": { name: "Bulbasaur", rarity: "IR" },
-      "167/165": { name: "Ivysaur", rarity: "IR" },
-      "168/165": { name: "Charmander", rarity: "IR" },
-      "169/165": { name: "Charmeleon", rarity: "IR" },
-      "170/165": { name: "Squirtle", rarity: "IR" },
-      "171/165": { name: "Wartortle", rarity: "IR" },
-      "172/165": { name: "Caterpie", rarity: "IR" },
-      "173/165": { name: "Pikachu", rarity: "IR" },
-      "174/165": { name: "Nidoking", rarity: "IR" },
-      "175/165": { name: "Psyduck", rarity: "IR" },
-      "176/165": { name: "Poliwhirl", rarity: "IR" },
-      "177/165": { name: "Machoke", rarity: "IR" },
-      "178/165": { name: "Tangela", rarity: "IR" },
-      "179/165": { name: "Mr. Mime", rarity: "IR" },
-      "180/165": { name: "Omanyte", rarity: "IR" },
-      "181/165": { name: "Dragonair", rarity: "IR" },
-      "198/165": { name: "Venusaur ex", rarity: "SIR" },
-      "199/165": { name: "Charizard ex", rarity: "SIR" },
-      "200/165": { name: "Blastoise ex", rarity: "SIR" },
-      "201/165": { name: "Alakazam ex", rarity: "SIR" },
-      "202/165": { name: "Zapdos ex", rarity: "SIR" }
-    }
-  }
-};
+// ── Promo Sets mapping (add names here to group under Promo Sets) ──
+const PROMO_SET_NAMES = new Set([
+  "Wizards Black Star Promos","EX Trainer Kit Latias","EX Trainer Kit Latios",
+  "EX Trainer Kit 2 Minun","EX Trainer Kit 2 Plusle","DP Black Star Promos",
+  "HGSS Black Star Promos","BW Black Star Promos","XY Black Star Promos",
+  "Kalos Starter Set","SM Black Star Promos","Detective Pikachu",
+  "SWSH Black Star Promos","Celebrations","Celebrations: Classic Collection",
+  "Scarlet & Violet Black Star Promos","Scarlet & Violet Energies",
+  "Southern Islands","Best of Game","Nintendo Black Star Promos",
+  "POP Series 1","POP Series 2","POP Series 3","POP Series 4",
+  "POP Series 5","POP Series 6","POP Series 7","POP Series 8","POP Series 9",
+  "Pokémon Rumble","McDonald's Collection 2011","McDonald's Collection 2012",
+  "McDonald's Collection 2014","McDonald's Collection 2015","McDonald's Collection 2016",
+  "McDonald's Collection 2017","McDonald's Collection 2018","McDonald's Collection 2019",
+  "Pokémon Futsal Collection","McDonald's Collection 2021","McDonald's Collection 2022"
+]);
 
-// Populate set dropdown
-const setSelect = document.getElementById('setSelect');
-Object.keys(SETS).forEach(name => {
+// ── Derive series list sorted newest-first, Promo Sets on top ──
+const seriesMeta = {};
+for (const [sid, s] of Object.entries(SETS_RAW)) {
+  const sd = s.sd;
+  if (!seriesMeta[sd] || s.rd > seriesMeta[sd]) seriesMeta[sd] = s.rd;
+}
+const seriesOrder = Object.keys(seriesMeta)
+  .filter(s => s !== 'Promo Sets')
+  .sort((a, b) => seriesMeta[b].localeCompare(seriesMeta[a]));
+if (seriesMeta['Promo Sets']) seriesOrder.unshift('Promo Sets');
+
+// Populate Series dropdown
+const seriesSelect = document.getElementById('seriesSelect');
+seriesOrder.forEach(s => {
   const opt = document.createElement('option');
-  opt.value = name;
-  opt.textContent = name;
-  setSelect.appendChild(opt);
+  opt.value = s;
+  opt.textContent = s;
+  seriesSelect.appendChild(opt);
 });
 
-// ── API Call ──
-async function apiCall(endpoint, params) {
-  const queryStr = Object.entries(params)
-    .map(([k, v]) => k + '=' + encodeURIComponent(v))
-    .join('&');
-  const fullUrl = API_BASE + endpoint + '?' + queryStr;
-  console.log('Fetching:', fullUrl);
-  try {
-    const resp = await fetch(fullUrl);
-    const text = await resp.text();
-    if (!resp.ok) throw new Error('API error ' + resp.status + ': ' + text.substring(0, 200));
-    return JSON.parse(text);
-  } catch (err) {
-    console.error('apiCall failed for', fullUrl, err);
-    throw err;
+// ── Multi-select Set dropdown ──
+const MAX_SETS = 5;
+let selectedSetIds = [];
+
+function getSetsForSeries(series) {
+  if (!series) return [];
+  return Object.entries(SETS_RAW)
+    .filter(([_, s]) => s.sd === series)
+    .sort((a, b) => {
+      const d = a[1].rd.localeCompare(b[1].rd);
+      return d !== 0 ? d : a[1].sn.localeCompare(b[1].sn);
+    });
+}
+
+function updateSetDropdown() {
+  const series = seriesSelect.value;
+  const setList = document.getElementById('setList');
+  const available = getSetsForSeries(series);
+
+  selectedSetIds = selectedSetIds.filter(id => available.some(([sid]) => sid === id));
+
+  let html = '';
+  if (available.length === 0) {
+    html = '<div style="padding:10px 12px;color:var(--text-dim);font-size:11px">No sets in this series</div>';
+  } else {
+    available.forEach(([sid, s]) => {
+      const checked = selectedSetIds.includes(sid);
+      const atMax = selectedSetIds.length >= MAX_SETS && !checked;
+      html += '<label class="multiselect-item' + (atMax ? ' disabled' : '') + '">' +
+        '<input type="checkbox" value="' + sid + '"' + (checked ? ' checked' : '') + (atMax ? ' disabled' : '') + '>' +
+        '<span>' + s.sn + '</span></label>';
+    });
+    if (selectedSetIds.length >= MAX_SETS) {
+      html += '<div class="multiselect-max">Maximum 5 sets selected</div>';
+    }
   }
+  setList.innerHTML = html;
+  updateSetBtnText();
+
+  // Bind checkbox events
+  setList.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', function(e) {
+      const sid = this.value;
+      if (this.checked) {
+        if (selectedSetIds.length < MAX_SETS) selectedSetIds.push(sid);
+        else { this.checked = false; return; }
+      } else {
+        selectedSetIds = selectedSetIds.filter(id => id !== sid);
+      }
+      updateSetDropdown();
+    });
+  });
+}
+
+function updateSetBtnText() {
+  const btn = document.getElementById('setBtn');
+  if (selectedSetIds.length === 0) btn.textContent = 'Select sets';
+  else if (selectedSetIds.length <= 2) btn.textContent = selectedSetIds.map(id => SETS_RAW[id].sn).join(', ');
+  else btn.textContent = selectedSetIds.length + ' Sets Selected';
+}
+
+seriesSelect.addEventListener('change', () => { selectedSetIds = []; updateSetDropdown(); });
+
+// Toggle dropdown open/close
+const msEl = document.getElementById('setMultiselect');
+document.getElementById('setBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  msEl.classList.toggle('open');
+});
+document.addEventListener('click', (e) => {
+  if (!msEl.contains(e.target)) msEl.classList.remove('open');
+});
+
+// ── API ──
+async function apiCall(endpoint, params) {
+  const qs = Object.entries(params).map(([k,v]) => k+'='+encodeURIComponent(v)).join('&');
+  const url = API_BASE + endpoint + '?' + qs;
+  const resp = await fetch(url);
+  const text = await resp.text();
+  if (!resp.ok) throw new Error('API error ' + resp.status);
+  return JSON.parse(text);
 }
 
 // ── Status ──
-function showStatus(text, progress) {
-  const bar = document.getElementById('statusBar');
-  bar.style.display = 'flex';
-  document.getElementById('statusText').innerHTML = '<span class="spinner"></span> ' + text;
-  if (progress !== undefined) document.getElementById('progressFill').style.width = progress + '%';
+function showStatus(t, p) {
+  const b = document.getElementById('statusBar'); b.style.display = 'flex';
+  document.getElementById('statusText').innerHTML = '<span class="spinner"></span> ' + t;
+  if (p !== undefined) document.getElementById('progressFill').style.width = p + '%';
 }
 function hideStatus() { document.getElementById('statusBar').style.display = 'none'; }
-function showError(msg) {
-  document.getElementById('statusBar').style.display = 'flex';
-  document.getElementById('statusText').innerHTML = '<span class="error">' + msg + '</span>';
-}
+function showError(m) { document.getElementById('statusBar').style.display = 'flex'; document.getElementById('statusText').innerHTML = '<span class="error">' + m + '</span>'; }
 
-// ── Graded Price Helpers ──
-function getGradedPrice(gradeData) {
-  if (!gradeData) return null;
-  if (gradeData.smartMarketPrice && gradeData.smartMarketPrice.price != null && gradeData.smartMarketPrice.daysUsed === 30) {
-    return gradeData.smartMarketPrice.price;
-  }
-  return gradeData.medianPrice ?? gradeData.averagePrice ?? null;
+// ── Price helpers ──
+function getGradedPrice(d) {
+  if (!d) return null;
+  if (d.smartMarketPrice && d.smartMarketPrice.price != null && d.smartMarketPrice.daysUsed === 30) return d.smartMarketPrice.price;
+  return d.medianPrice ?? d.averagePrice ?? null;
 }
-
-function getGradedMethod(gradeData) {
-  if (!gradeData) return 'none';
-  if (gradeData.smartMarketPrice && gradeData.smartMarketPrice.price != null && gradeData.smartMarketPrice.daysUsed === 30) {
-    return 'smartMarketPrice30Day';
-  }
-  if (gradeData.medianPrice != null) return 'medianPrice';
-  if (gradeData.averagePrice != null) return 'averagePrice';
-  return 'none';
-}
-
-function getConfidence(gradeData) {
-  if (!gradeData) return null;
-  if (gradeData.smartMarketPrice && gradeData.smartMarketPrice.price != null && gradeData.smartMarketPrice.daysUsed === 30) {
-    return gradeData.smartMarketPrice.confidence || null;
-  }
+function getConfidence(d) {
+  if (!d) return null;
+  if (d.smartMarketPrice && d.smartMarketPrice.price != null && d.smartMarketPrice.daysUsed === 30) return d.smartMarketPrice.confidence || null;
   return null;
 }
 
-// ── Scan Logic ──
-async function scanSet(setName) {
-  const setData = SETS[setName];
-  const cardEntries = Object.entries(setData.cards);
+// ── Scan ──
+async function scanSetById(sid) {
+  const setData = SETS_RAW[sid];
+  const entries = Object.entries(setData.c);
   const results = [];
-  const batchSize = 5;
+  const batch = 5;
 
-  for (let i = 0; i < cardEntries.length; i += batchSize) {
-    const batch = cardEntries.slice(i, i + batchSize);
-    showStatus(
-      setName + ': Scanning ' + Math.min(i + batchSize, cardEntries.length) + '/' + cardEntries.length,
-      Math.round((i / cardEntries.length) * 100)
-    );
+  for (let i = 0; i < entries.length; i += batch) {
+    const b = entries.slice(i, i + batch);
+    showStatus(setData.sn + ': ' + Math.min(i+batch, entries.length) + '/' + entries.length, Math.round(i/entries.length*100));
 
-    const promises = batch.map(async ([cardNum, info]) => {
+    const promises = b.map(async ([cn, info]) => {
       try {
         const data = await apiCall('/cards', {
-          search: info.name + ' ' + cardNum,
-          set: setData.searchName,
+          search: info.n + ' ' + cn,
+          set: setData.sn,
           includeEbay: 'true',
           days: '90',
           limit: '5'
         });
 
         let card = null;
-        if (!data || !data.data) {
-          return { name: info.name, cardNumber: cardNum, rarity: info.rarity, setName, rawNM: null, cgc10: null, psa10: null, error: 'No data' };
-        }
+        if (!data || !data.data) return { name:info.n, cardNumber:cn, rarity:info.r, setName:setData.sn, rawNM:null, cgc10:null, psa10:null };
 
         if (Array.isArray(data.data)) {
-          card = data.data.find(c => c.cardNumber === cardNum);
-          if (!card) card = data.data.find(c => c.cardNumber && c.cardNumber.startsWith(cardNum.split('/')[0]));
+          card = data.data.find(c => c.cardNumber === cn || (c.cardNumber && c.cardNumber.split('/')[0] === cn));
           if (!card && data.data.length > 0) card = data.data[0];
-        } else {
-          card = data.data;
-        }
+        } else card = data.data;
 
-        if (!card) {
-          return { name: info.name, cardNumber: cardNum, rarity: info.rarity, setName, rawNM: null, cgc10: null, psa10: null, error: 'Not found' };
-        }
+        if (!card) return { name:info.n, cardNumber:cn, rarity:info.r, setName:setData.sn, rawNM:null, cgc10:null, psa10:null };
 
         const rawNM = card.prices?.market ?? null;
         const grades = card.ebay?.salesByGrade;
-
-        // CGC 10
         const cgc10Data = grades?.cgc10 || null;
-        const cgc10 = getGradedPrice(cgc10Data);
-        const cgc10Confidence = getConfidence(cgc10Data);
-        const cgc10Sales = cgc10Data?.count || 0;
-
-        // PSA 10
         const psa10Data = grades?.psa10 || null;
+        const cgc10 = getGradedPrice(cgc10Data);
         const psa10 = getGradedPrice(psa10Data);
-        const psa10Confidence = getConfidence(psa10Data);
-        const psa10Sales = psa10Data?.count || 0;
 
-        // Spreads
-        let cgcSpread = null, cgcSpreadPct = null;
-        if (rawNM && cgc10) {
-          cgcSpread = cgc10 - rawNM;
-          cgcSpreadPct = ((cgc10 - rawNM) / rawNM) * 100;
-        }
-
-        let psaSpread = null, psaSpreadPct = null;
-        if (rawNM && psa10) {
-          psaSpread = psa10 - rawNM;
-          psaSpreadPct = ((psa10 - rawNM) / rawNM) * 100;
-        }
+        let cgcSpread=null,cgcPct=null,psaSpread=null,psaPct=null;
+        if (rawNM && cgc10) { cgcSpread=cgc10-rawNM; cgcPct=(cgcSpread/rawNM)*100; }
+        if (rawNM && psa10) { psaSpread=psa10-rawNM; psaPct=(psaSpread/rawNM)*100; }
 
         return {
-          name: info.name,
-          cardNumber: cardNum,
-          rarity: info.rarity,
-          setName: setName,
-          rawNM: rawNM,
-          image: card.imageCdnUrl200 || card.imageCdnUrl400 || null,
-          // CGC
-          cgc10, cgcSpread, cgcSpreadPct, cgc10Confidence, cgc10Sales,
-          // PSA
-          psa10, psaSpread, psaSpreadPct, psa10Confidence, psa10Sales,
-          // Meta
-          ebayGrades: grades ? Object.keys(grades) : [],
+          name:info.n, cardNumber:cn, rarity:info.r, setName:setData.sn, rawNM,
+          cgc10, cgcSpread, cgcSpreadPct:cgcPct, cgc10Confidence:getConfidence(cgc10Data), cgc10Sales:cgc10Data?.count||0,
+          psa10, psaSpread, psaSpreadPct:psaPct, psa10Confidence:getConfidence(psa10Data), psa10Sales:psa10Data?.count||0,
+          image:card.imageCdnUrl200||card.imageCdnUrl400||null,
+          ebayGrades:grades?Object.keys(grades):[]
         };
-      } catch (err) {
-        console.error('Error fetching ' + info.name + ':', err);
-        return {
-          name: info.name, cardNumber: cardNum, rarity: info.rarity, setName,
-          rawNM: null, cgc10: null, psa10: null, error: err.message
-        };
+      } catch(e) {
+        console.error('Error:', info.n, e);
+        return { name:info.n, cardNumber:cn, rarity:info.r, setName:setData.sn, rawNM:null, cgc10:null, psa10:null, error:e.message };
       }
     });
 
-    const batchResults = await Promise.all(promises);
-    results.push(...batchResults.filter(r => r !== null));
-    if (i + batchSize < cardEntries.length) await new Promise(r => setTimeout(r, 500));
+    results.push(...(await Promise.all(promises)).filter(Boolean));
+    if (i + batch < entries.length) await new Promise(r => setTimeout(r, 500));
   }
   return results;
 }
 
 async function scanSelected() {
-  const setName = setSelect.value;
-  if (!setName) { alert('Select a set'); return; }
+  if (selectedSetIds.length === 0) { alert('Select at least one set'); return; }
   document.getElementById('scanBtn').disabled = true;
   document.getElementById('scanAllBtn').disabled = true;
+  const all = [];
   try {
-    const results = await scanSet(setName);
-    showStatus('Complete: ' + results.length + ' cards scanned', 100);
+    for (let i = 0; i < selectedSetIds.length; i++) {
+      const r = await scanSetById(selectedSetIds[i]);
+      all.push(...r);
+    }
+    showStatus('Complete: ' + all.length + ' cards', 100);
     setTimeout(hideStatus, 2000);
-    renderResults(results);
-  } catch (err) { showError('Scan failed: ' + err.message); }
-  finally {
-    document.getElementById('scanBtn').disabled = false;
-    document.getElementById('scanAllBtn').disabled = false;
-  }
+    renderResults(all);
+  } catch(e) { showError('Failed: ' + e.message); }
+  finally { document.getElementById('scanBtn').disabled = false; document.getElementById('scanAllBtn').disabled = false; }
 }
 
 async function scanAll() {
+  const series = seriesSelect.value;
+  if (!series) { alert('Select a series first'); return; }
+  const setsInSeries = getSetsForSeries(series).map(([sid]) => sid);
+  if (setsInSeries.length === 0) { alert('No sets in this series'); return; }
   document.getElementById('scanBtn').disabled = true;
   document.getElementById('scanAllBtn').disabled = true;
-  const allResults = [];
+  const all = [];
   try {
-    for (const setName of Object.keys(SETS)) {
-      const results = await scanSet(setName);
-      allResults.push(...results);
+    for (let i = 0; i < setsInSeries.length; i++) {
+      const r = await scanSetById(setsInSeries[i]);
+      all.push(...r);
     }
-    showStatus('Complete: ' + allResults.length + ' cards', 100);
+    showStatus('Complete: ' + all.length + ' cards across ' + setsInSeries.length + ' sets', 100);
     setTimeout(hideStatus, 2000);
-    renderResults(allResults);
-  } catch (err) { showError('Scan failed: ' + err.message); }
-  finally {
-    document.getElementById('scanBtn').disabled = false;
-    document.getElementById('scanAllBtn').disabled = false;
-  }
+    renderResults(all);
+  } catch(e) { showError('Failed: ' + e.message); }
+  finally { document.getElementById('scanBtn').disabled = false; document.getElementById('scanAllBtn').disabled = false; }
 }
 
 // ── Render ──
-function getTier(spreadPct) {
-  if (spreadPct === null) return 'tier-c';
-  if (spreadPct >= 100) return 'tier-s';
-  if (spreadPct >= 50) return 'tier-a';
-  if (spreadPct >= 20) return 'tier-b';
-  if (spreadPct >= 0) return 'tier-c';
-  return 'tier-avoid';
+function getTier(p){if(p===null)return'tier-c';if(p>=100)return'tier-s';if(p>=50)return'tier-a';if(p>=20)return'tier-b';if(p>=0)return'tier-c';return'tier-avoid'}
+
+function renderCardRow(r, i, gk) {
+  const graded = gk==='psa'?r.psa10:r.cgc10;
+  const spread = gk==='psa'?r.psaSpread:r.cgcSpread;
+  const pct = gk==='psa'?r.psaSpreadPct:r.cgcSpreadPct;
+  const conf = gk==='psa'?r.psa10Confidence:r.cgc10Confidence;
+  const sales = gk==='psa'?r.psa10Sales:r.cgc10Sales;
+  const tier = getTier(pct);
+  const ss = pct!==null?(pct>0?'+':'')+pct.toFixed(1)+'%':'N/A';
+  const sc = pct===null?'':pct>=50?'spread-positive':pct>=0?'spread-neutral':'spread-negative';
+  const sd = spread!==null?'$'+Math.abs(spread).toFixed(0):'';
+  const tagClass = r.rarity==='SIR'?'tag-sir':r.rarity==='IR'?'tag-ir':'tag-holo';
+
+  return '<div class="card-row '+tier+'">'+
+    '<div class="rank">'+(i+1)+'</div>'+
+    '<div class="card-img-cell">'+(r.image?'<img class="card-img" src="'+r.image+'" alt="'+r.name+'" loading="lazy">':'<div class="card-img"></div>')+'</div>'+
+    '<div><div class="card-name">'+r.name+'</div><div class="card-meta">'+r.cardNumber+' &middot; <span class="tag '+tagClass+'">'+r.rarity+'</span> &middot; '+r.setName+'</div></div>'+
+    '<div class="price">'+(r.rawNM?'$'+r.rawNM.toFixed(2):'<span class="error">N/A</span>')+'</div>'+
+    '<div class="price">'+(graded?'$'+graded.toFixed(2):'<span style="color:var(--text-dim)">No data</span>')+'</div>'+
+    '<div><span class="'+sc+'">'+ss+'</span>'+(sd?'<br><span style="font-size:10px;color:var(--text-dim)">'+sd+'</span>':'')+'</div>'+
+    '<div class="col-confidence">'+(conf?'<span class="confidence-'+conf+'">'+conf+'</span>':'<span style="color:var(--text-dim)">--</span>')+'</div>'+
+    '<div class="col-sales">'+(sales>0?sales:'<span style="color:var(--text-dim)">0</span>')+'</div></div>';
 }
 
-function renderCardRow(r, i, graderKey) {
-  const graded = graderKey === 'psa' ? r.psa10 : r.cgc10;
-  const spread = graderKey === 'psa' ? r.psaSpread : r.cgcSpread;
-  const spreadPct = graderKey === 'psa' ? r.psaSpreadPct : r.cgcSpreadPct;
-  const confidence = graderKey === 'psa' ? r.psa10Confidence : r.cgc10Confidence;
-  const sales = graderKey === 'psa' ? r.psa10Sales : r.cgc10Sales;
-  const gradeLabel = graderKey === 'psa' ? 'PSA 10' : 'CGC 10';
+function renderHeader(gl){return'<div class="card-row-header"><div>#</div><div class="col-img"></div><div>Card</div><div>Raw NM</div><div>'+gl+'</div><div>Spread</div><div class="col-confidence-h">Conf.</div><div class="col-sales-h">Sales</div></div>'}
 
-  const tier = getTier(spreadPct);
-  const spreadStr = spreadPct !== null ? (spreadPct > 0 ? '+' : '') + spreadPct.toFixed(1) + '%' : 'N/A';
-  const spreadClass = spreadPct === null ? '' : spreadPct >= 50 ? 'spread-positive' : spreadPct >= 0 ? 'spread-neutral' : 'spread-negative';
-  const spreadDollar = spread !== null ? '$' + Math.abs(spread).toFixed(0) : '';
-
-  return '<div class="card-row ' + tier + '">' +
-    '<div class="rank">' + (i + 1) + '</div>' +
-    '<div class="card-img-cell">' +
-      (r.image ? '<img class="card-img" src="' + r.image + '" alt="' + r.name + '" loading="lazy">' : '<div class="card-img"></div>') +
-    '</div>' +
-    '<div>' +
-      '<div class="card-name">' + r.name + '</div>' +
-      '<div class="card-meta">' + r.cardNumber + ' &middot; <span class="tag ' + (r.rarity === 'SIR' ? 'tag-sir' : 'tag-ir') + '">' + r.rarity + '</span></div>' +
-    '</div>' +
-    '<div class="price">' + (r.rawNM ? '$' + r.rawNM.toFixed(2) : '<span class="error">N/A</span>') + '</div>' +
-    '<div class="price">' + (graded ? '$' + graded.toFixed(2) : '<span style="color:var(--text-dim)">No data</span>') + '</div>' +
-    '<div><span class="' + spreadClass + '">' + spreadStr + '</span>' +
-      (spreadDollar ? '<br><span style="font-size:10px;color:var(--text-dim)">' + spreadDollar + '</span>' : '') +
-    '</div>' +
-    '<div class="col-confidence">' +
-      (confidence ? '<span class="confidence-' + confidence + '">' + confidence + '</span>' : '<span style="color:var(--text-dim)">--</span>') +
-    '</div>' +
-    '<div class="col-sales">' + (sales > 0 ? sales : '<span style="color:var(--text-dim)">0</span>') + '</div>' +
-  '</div>';
+function calcStats(arr, k) {
+  const wd = arr.filter(r => (k==='psa'?r.psaSpreadPct:r.cgcSpreadPct)!==null);
+  const avg = wd.length?wd.reduce((s,r)=>s+(k==='psa'?r.psaSpreadPct:r.cgcSpreadPct),0)/wd.length:0;
+  let top=null; wd.forEach(r=>{const p=k==='psa'?r.psaSpreadPct:r.cgcSpreadPct;if(!top||p>(k==='psa'?top.psaSpreadPct:top.cgcSpreadPct))top=r});
+  const nd = arr.filter(r=>(k==='psa'?r.psa10:r.cgc10)===null);
+  return{total:arr.length,withData:wd.length,avg,top,noData:nd.length};
 }
 
-function renderTableHeader(gradeLabel) {
-  return '<div class="card-row-header">' +
-    '<div>#</div><div class="col-img"></div><div>Card</div>' +
-    '<div>Raw NM</div><div>' + gradeLabel + '</div><div>Spread</div>' +
-    '<div class="col-confidence-h">Conf.</div><div class="col-sales-h">Sales</div>' +
-  '</div>';
+function renderSummary(st, topName, topPct, label) {
+  const pre = label?'<div style="font-family:Syne,sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);padding:16px 24px 0">'+label+'</div>':'';
+  return pre+'<div class="summary-bar">'+
+    '<div class="summary-card"><div class="label">Cards Scanned</div><div class="value">'+st.total+'</div><div class="detail">'+st.withData+' with graded data</div></div>'+
+    '<div class="summary-card"><div class="label">Avg Spread</div><div class="value" style="color:'+(st.avg>0?'var(--accent)':'var(--red)')+'">'+(st.avg>0?'+':'')+st.avg.toFixed(1)+'%</div><div class="detail">Raw NM to Graded 10</div></div>'+
+    '<div class="summary-card"><div class="label">Top Opportunity</div><div class="value" style="color:var(--accent)">'+topName+'</div><div class="detail">'+topPct+' spread</div></div>'+
+    '<div class="summary-card"><div class="label">No Graded Data</div><div class="value" style="color:'+(st.noData>0?'var(--yellow)':'var(--text-dim)')+'">'+st.noData+'</div><div class="detail">'+(st.noData>0?'Insufficient data':'All have data')+'</div></div></div>';
+}
+
+function sortBySpread(arr, k) {
+  return [...arr].sort((a,b)=>{
+    const av=k==='psa'?a.psaSpreadPct:a.cgcSpreadPct;
+    const bv=k==='psa'?b.psaSpreadPct:b.cgcSpreadPct;
+    if(av===null&&bv===null)return 0;if(av===null)return 1;if(bv===null)return -1;return bv-av;
+  });
 }
 
 function renderResults(results) {
   const grader = document.getElementById('graderSelect').value;
-
-  // Sort helper
-  function sortBySpread(arr, key) {
-    return [...arr].sort((a, b) => {
-      const aVal = key === 'psa' ? a.psaSpreadPct : a.cgcSpreadPct;
-      const bVal = key === 'psa' ? b.psaSpreadPct : b.cgcSpreadPct;
-      if (aVal === null && bVal === null) return 0;
-      if (aVal === null) return 1;
-      if (bVal === null) return -1;
-      return bVal - aVal;
-    });
-  }
-
-  // Summary stats helper
-  function calcStats(arr, key) {
-    const withData = arr.filter(r => (key === 'psa' ? r.psaSpreadPct : r.cgcSpreadPct) !== null);
-    const avg = withData.length ? withData.reduce((s, r) => s + (key === 'psa' ? r.psaSpreadPct : r.cgcSpreadPct), 0) / withData.length : 0;
-    const top = withData.length ? withData.reduce((best, r) => {
-      const pct = key === 'psa' ? r.psaSpreadPct : r.cgcSpreadPct;
-      return pct > (key === 'psa' ? best.psaSpreadPct : best.cgcSpreadPct) ? r : best;
-    }) : null;
-    const noData = arr.filter(r => (key === 'psa' ? r.psa10 : r.cgc10) === null);
-    return { total: arr.length, withData: withData.length, avg, top, noData: noData.length };
-  }
-
   let html = '';
 
-  if (grader === 'cgc' || grader === 'both') {
-    const sorted = sortBySpread(results, 'cgc');
-    const stats = calcStats(results, 'cgc');
-    const topName = stats.top ? stats.top.name : 'N/A';
-    const topPct = stats.top ? '+' + (stats.top.cgcSpreadPct).toFixed(1) + '%' : '';
-
-    // Summary
-    document.getElementById('summaryArea').innerHTML = renderSummary(stats, topName, topPct, grader === 'both' ? 'CGC 10' : null);
-
+  if (grader==='cgc'||grader==='both') {
+    const sorted = sortBySpread(results,'cgc');
+    const st = calcStats(results,'cgc');
+    const tn = st.top?st.top.name:'N/A';
+    const tp = st.top?'+'+st.top.cgcSpreadPct.toFixed(1)+'%':'';
+    document.getElementById('summaryArea').innerHTML = renderSummary(st,tn,tp,grader==='both'?'CGC 10':null);
     html += '<div class="results">';
-    if (grader === 'both') html += '<div class="section-header">CGC 10 Spread</div>';
-    html += renderTableHeader('CGC 10');
-    html += '<div class="card-grid">';
-    sorted.forEach((r, i) => { html += renderCardRow(r, i, 'cgc'); });
+    if (grader==='both') html += '<div class="section-header">CGC 10 Spread</div>';
+    html += renderHeader('CGC 10') + '<div class="card-grid">';
+    sorted.forEach((r,i) => html += renderCardRow(r,i,'cgc'));
     html += '</div>';
 
-    if (grader === 'both') {
-      const psaSorted = sortBySpread(results, 'psa');
-      const psaStats = calcStats(results, 'psa');
-      html += '<div class="section-header psa-header" style="margin-top:24px;">PSA 10 Spread</div>';
-      html += renderTableHeader('PSA 10');
-      html += '<div class="card-grid">';
-      psaSorted.forEach((r, i) => { html += renderCardRow(r, i, 'psa'); });
+    if (grader==='both') {
+      const ps = sortBySpread(results,'psa');
+      const pst = calcStats(results,'psa');
+      document.getElementById('summaryArea').innerHTML += renderSummary(pst,pst.top?pst.top.name:'N/A',pst.top?'+'+pst.top.psaSpreadPct.toFixed(1)+'%':'','PSA 10');
+      html += '<div class="section-header psa-header" style="margin-top:24px">PSA 10 Spread</div>';
+      html += renderHeader('PSA 10') + '<div class="card-grid">';
+      ps.forEach((r,i) => html += renderCardRow(r,i,'psa'));
       html += '</div>';
-
-      // Append PSA summary below CGC summary
-      document.getElementById('summaryArea').innerHTML += renderSummary(psaStats,
-        psaStats.top ? psaStats.top.name : 'N/A',
-        psaStats.top ? '+' + psaStats.top.psaSpreadPct.toFixed(1) + '%' : '',
-        'PSA 10'
-      );
     }
-
     html += '</div>';
-  } else if (grader === 'psa') {
-    const sorted = sortBySpread(results, 'psa');
-    const stats = calcStats(results, 'psa');
-    const topName = stats.top ? stats.top.name : 'N/A';
-    const topPct = stats.top ? '+' + (stats.top.psaSpreadPct).toFixed(1) + '%' : '';
-
-    document.getElementById('summaryArea').innerHTML = renderSummary(stats, topName, topPct, null);
-
-    html += '<div class="results">';
-    html += renderTableHeader('PSA 10');
-    html += '<div class="card-grid">';
-    sorted.forEach((r, i) => { html += renderCardRow(r, i, 'psa'); });
+  } else {
+    const sorted = sortBySpread(results,'psa');
+    const st = calcStats(results,'psa');
+    document.getElementById('summaryArea').innerHTML = renderSummary(st,st.top?st.top.name:'N/A',st.top?'+'+st.top.psaSpreadPct.toFixed(1)+'%':'',null);
+    html += '<div class="results">'+renderHeader('PSA 10')+'<div class="card-grid">';
+    sorted.forEach((r,i) => html += renderCardRow(r,i,'psa'));
     html += '</div></div>';
   }
 
@@ -694,51 +456,15 @@ function renderResults(results) {
   renderFooter(results);
 }
 
-function renderSummary(stats, topName, topPct, label) {
-  const prefix = label ? '<div style="font-family:Syne,sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);padding:16px 24px 0;">' + label + '</div>' : '';
-  return prefix + '<div class="summary-bar">' +
-    '<div class="summary-card"><div class="label">Cards Scanned</div><div class="value">' + stats.total + '</div>' +
-      '<div class="detail">' + stats.withData + ' with graded data</div></div>' +
-    '<div class="summary-card"><div class="label">Avg Spread</div>' +
-      '<div class="value" style="color:' + (stats.avg > 0 ? 'var(--accent)' : 'var(--red)') + '">' +
-      (stats.avg > 0 ? '+' : '') + stats.avg.toFixed(1) + '%</div>' +
-      '<div class="detail">Raw NM to Graded 10</div></div>' +
-    '<div class="summary-card"><div class="label">Top Opportunity</div>' +
-      '<div class="value" style="color:var(--accent)">' + topName + '</div>' +
-      '<div class="detail">' + topPct + ' spread</div></div>' +
-    '<div class="summary-card"><div class="label">No Graded Data</div>' +
-      '<div class="value" style="color:' + (stats.noData > 0 ? 'var(--yellow)' : 'var(--text-dim)') + '">' + stats.noData + '</div>' +
-      '<div class="detail">' + (stats.noData > 0 ? 'Insufficient sales data' : 'All cards have data') + '</div></div>' +
-  '</div>';
-}
-
 function renderFooter(results) {
   const allGrades = new Set();
-  results.forEach(r => { if (r.ebayGrades) r.ebayGrades.forEach(g => allGrades.add(g)); });
-
+  results.forEach(r=>{if(r.ebayGrades)r.ebayGrades.forEach(g=>allGrades.add(g))});
   document.getElementById('footerArea').innerHTML =
-    '<div class="footer-notes"><h3>Scan Analysis</h3><div class="footer-grid">' +
-    '<div class="footer-section"><h4>Tier Legend</h4><ul>' +
-      '<li><span style="color:var(--accent)">S Tier</span> = 100%+ spread</li>' +
-      '<li><span style="color:var(--blue)">A Tier</span> = 50-99% spread</li>' +
-      '<li><span style="color:var(--yellow)">B Tier</span> = 20-49% spread</li>' +
-      '<li><span style="color:var(--text-dim)">C Tier</span> = 0-19% spread</li>' +
-      '<li><span style="color:var(--red)">Avoid</span> = negative spread</li>' +
-    '</ul></div>' +
-    '<div class="footer-section"><h4>Data Quality</h4><ul>' +
-      '<li>Graded 10 prices from eBay sold data (90 day window)</li>' +
-      '<li>Uses 30-day smart price first, then median, then average</li>' +
-      '<li>Raw NM = TCGPlayer market price</li>' +
-    '</ul></div>' +
-    '<div class="footer-section"><h4>Grading Costs Not Included</h4><ul>' +
-      '<li>CGC standard: ~$20-30/card</li>' +
-      '<li>PSA standard: ~$20-50/card</li>' +
-      '<li>Shipping to/from grader: ~$10-15</li>' +
-      '<li>eBay selling fees: ~13%</li>' +
-    '</ul></div>' +
-    '<div class="footer-section"><h4>Available Grades in Data</h4>' +
-      '<p>' + (allGrades.size > 0 ? Array.from(allGrades).sort().join(', ') : 'Grades populate after scan') + '</p>' +
-    '</div></div></div>';
+    '<div class="footer-notes"><h3>Scan Analysis</h3><div class="footer-grid">'+
+    '<div class="footer-section"><h4>Tier Legend</h4><ul><li><span style="color:var(--accent)">S</span> = 100%+</li><li><span style="color:var(--blue)">A</span> = 50-99%</li><li><span style="color:var(--yellow)">B</span> = 20-49%</li><li><span style="color:var(--text-dim)">C</span> = 0-19%</li><li><span style="color:var(--red)">Avoid</span> = negative</li></ul></div>'+
+    '<div class="footer-section"><h4>Data Notes</h4><ul><li>Graded 10 = eBay sold (90 day window)</li><li>30-day smart price first, then median, then avg</li><li>Raw NM = TCGPlayer market price</li></ul></div>'+
+    '<div class="footer-section"><h4>Costs Not Included</h4><ul><li>CGC: ~$20-30 / PSA: ~$20-50</li><li>Shipping: ~$10-15 round trip</li><li>eBay fees: ~13%</li></ul></div>'+
+    '<div class="footer-section"><h4>Grades Tracked</h4><p>'+(allGrades.size>0?Array.from(allGrades).sort().join(', '):'Scan to populate')+'</p></div></div></div>';
 }
 </script>
 </body>
