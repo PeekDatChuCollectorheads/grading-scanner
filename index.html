@@ -198,27 +198,97 @@ function updateRarVis(){const sr=document.getElementById('seriesSelect').value;d
 function updateSetDD(){const sr=document.getElementById('seriesSelect').value,av=getSetsFor(sr);selectedSets=selectedSets.filter(id=>av.some(([sid])=>sid===id));const p=document.getElementById('setPanel');let h='';if(!av.length)h='<div class="ms-em">No sets</div>';else{av.forEach(([sid,s])=>{const chk=selectedSets.includes(sid),dis=selectedSets.length>=MAX_SETS&&!chk;h+='<label class="ms-i'+(dis?' dis':'')+'"><input type="checkbox" data-sid="'+sid+'"'+(chk?' checked':'')+(dis?' disabled':'')+'>'+s.sn+'</label>'});if(selectedSets.length>=MAX_SETS)h+='<div class="ms-mx">Max 5</div>'}p.innerHTML=h;p.querySelectorAll('input').forEach(cb=>{cb.addEventListener('change',function(){const sid=this.dataset.sid;if(this.checked&&selectedSets.length<MAX_SETS)selectedSets.push(sid);else if(!this.checked)selectedSets=selectedSets.filter(id=>id!==sid);else{this.checked=false;return}updateSetDD();updateRarDD()})});const btn=document.getElementById('setBtn');btn.textContent=!selectedSets.length?'Select sets':selectedSets.length<=2?selectedSets.map(id=>SD[id].sn).join(', '):selectedSets.length+' Sets'}
 function updateRarDD(){if(!RARITY_SERIES.has(document.getElementById('seriesSelect').value))return;const rs=new Set();selectedSets.forEach(sid=>Object.keys(SD[sid].c).forEach(r=>rs.add(r)));const rars=[...rs].sort();selectedRarities=selectedRarities.filter(r=>rars.includes(r));const p=document.getElementById('rarPanel');let h='';if(!rars.length)h='<div class="ms-em">Select sets first</div>';else rars.forEach(r=>{h+='<label class="ms-i"><input type="checkbox" data-rar="'+r+'"'+(selectedRarities.includes(r)?' checked':'')+'>'+r+'</label>'});p.innerHTML=h;p.querySelectorAll('input').forEach(cb=>{cb.addEventListener('change',function(){const r=this.dataset.rar;if(this.checked&&!selectedRarities.includes(r))selectedRarities.push(r);else selectedRarities=selectedRarities.filter(x=>x!==r);const b=document.getElementById('rarBtn');b.textContent=!selectedRarities.length?'Select rarity':selectedRarities.length<=2?selectedRarities.join(', '):selectedRarities.length+' Rarities'})})}
 document.getElementById('seriesSelect').addEventListener('change',()=>{selectedSets=[];selectedRarities=[];updateSetDD();updateRarVis();updateRarDD()});
-// Budget dropdowns
 function updateBRarVis(){const sr=document.getElementById('budgetSeries').value;document.getElementById('bRarGroup').classList.toggle('hidden',!RARITY_SERIES.has(sr));if(!RARITY_SERIES.has(sr))budgetRarities=[]}
 function updateBSetDD(){const sr=document.getElementById('budgetSeries').value,av=getSetsFor(sr);budgetSets=budgetSets.filter(id=>av.some(([sid])=>sid===id));const p=document.getElementById('bSetPanel');let h='';if(!av.length)h='<div class="ms-em">No sets</div>';else{av.forEach(([sid,s])=>{const chk=budgetSets.includes(sid),dis=budgetSets.length>=MAX_SETS&&!chk;h+='<label class="ms-i'+(dis?' dis':'')+'"><input type="checkbox" data-bsid="'+sid+'"'+(chk?' checked':'')+(dis?' disabled':'')+'>'+s.sn+'</label>'});if(budgetSets.length>=MAX_SETS)h+='<div class="ms-mx">Max 5</div>'}p.innerHTML=h;p.querySelectorAll('input').forEach(cb=>{cb.addEventListener('change',function(){const sid=this.dataset.bsid;if(this.checked&&budgetSets.length<MAX_SETS)budgetSets.push(sid);else if(!this.checked)budgetSets=budgetSets.filter(id=>id!==sid);else{this.checked=false;return}updateBSetDD();updateBRarDD()})});const btn=document.getElementById('bSetBtn');btn.textContent=!budgetSets.length?'All in series':budgetSets.length<=2?budgetSets.map(id=>SD[id].sn).join(', '):budgetSets.length+' Sets'}
 function updateBRarDD(){if(!RARITY_SERIES.has(document.getElementById('budgetSeries').value))return;const sids=budgetSets.length?budgetSets:getSetsFor(document.getElementById('budgetSeries').value).map(([sid])=>sid);const rs=new Set();sids.forEach(sid=>Object.keys(SD[sid].c).forEach(r=>rs.add(r)));const rars=[...rs].sort();budgetRarities=budgetRarities.filter(r=>rars.includes(r));const p=document.getElementById('bRarPanel');let h='';if(!rars.length)h='<div class="ms-em">Select sets first</div>';else rars.forEach(r=>{h+='<label class="ms-i"><input type="checkbox" data-brar="'+r+'"'+(budgetRarities.includes(r)?' checked':'')+'>'+r+'</label>'});p.innerHTML=h;p.querySelectorAll('input').forEach(cb=>{cb.addEventListener('change',function(){const r=this.dataset.brar;if(this.checked&&!budgetRarities.includes(r))budgetRarities.push(r);else budgetRarities=budgetRarities.filter(x=>x!==r);const b=document.getElementById('bRarBtn');b.textContent=!budgetRarities.length?'Select rarity':budgetRarities.length<=2?budgetRarities.join(', '):budgetRarities.length+' Rarities'})})}
 document.getElementById('budgetSeries').addEventListener('change',()=>{budgetSets=[];budgetRarities=[];updateBSetDD();updateBRarVis();updateBRarDD()});
 function getCards(sids,sr,rars){const cards=[];const usesR=RARITY_SERIES.has(sr);sids.forEach(sid=>{const s=SD[sid];if(usesR&&rars.length){rars.forEach(rar=>{if(s.c[rar])Object.entries(s.c[rar]).forEach(([cn,nm])=>cards.push({setId:sid,setName:s.sn,searchName:s.sn,cardNumber:cn,name:nm,rarity:rar}))})}else if(!usesR){for(const[rar,crds]of Object.entries(s.c))Object.entries(crds).forEach(([cn,nm])=>cards.push({setId:sid,setName:s.sn,searchName:s.sn,cardNumber:cn,name:nm,rarity:rar}))}});return cards}
 
-// API with retry on 403/429
-async function apiCall(ep,params){const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');const url=API_BASE+ep+'?'+qs;for(let attempt=0;attempt<3;attempt++){const resp=await fetch(url);if(resp.status===403||resp.status===429){const wait=(attempt+1)*3000;console.warn('Rate limited ('+resp.status+'), waiting '+wait+'ms...');await new Promise(r=>setTimeout(r,wait));continue}if(!resp.ok)throw new Error('API '+resp.status);return JSON.parse(await resp.text())}throw new Error('API rate limited after 3 retries')}
+// Rate-aware API call: waits if approaching 60/min limit
+async function apiCall(ep,params){
+  const qs=Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
+  const url=API_BASE+ep+'?'+qs;
+  // Check rate before calling - if at 55+, wait until we have headroom
+  while(rateTracker.count>=55){await new Promise(r=>setTimeout(r,1000))}
+  for(let attempt=0;attempt<3;attempt++){
+    const resp=await fetch(url);
+    if(resp.status===403||resp.status===429){
+      // Wait for rate to drop below 50
+      const wait=Math.max(2000,(61000-(Date.now()-rateTracker.calls[0]||0)));
+      console.warn('Rate limited, waiting...');
+      await new Promise(r=>setTimeout(r,Math.min(wait,5000)));
+      continue;
+    }
+    if(!resp.ok)throw new Error('API '+resp.status);
+    return JSON.parse(await resp.text());
+  }
+  throw new Error('Rate limited after retries');
+}
 
 function showSt(id,t,p){const b=document.getElementById(id);b.style.display='flex';b.querySelector('span').innerHTML='<span class="spinner"></span> '+t;const f=b.querySelector('.pgf');if(f&&p!==undefined)f.style.width=p+'%'}
 function hideSt(id){document.getElementById(id).style.display='none'}
 function getGP(d){if(!d)return null;if(d.smartMarketPrice&&d.smartMarketPrice.price!=null&&d.smartMarketPrice.daysUsed===30)return d.smartMarketPrice.price;return d.medianPrice??d.averagePrice??null}
 function getConf(d){if(!d)return null;if(d.smartMarketPrice&&d.smartMarketPrice.price!=null&&d.smartMarketPrice.daysUsed===30)return d.smartMarketPrice.confidence||null;return null}
 
-// Scan with longer delays between batches to avoid rate limits
-async function scanBatch(cards,stId){const results=[];const batch=3;for(let i=0;i<cards.length;i+=batch){const b=cards.slice(i,i+batch);showSt(stId,'Scanning '+Math.min(i+batch,cards.length)+'/'+cards.length,Math.round(i/cards.length*100));const promises=b.map(async card=>{try{const data=await apiCall('/cards',{search:card.name+' '+card.cardNumber,set:card.searchName,includeEbay:'true',days:'90',limit:'5'});let c=null;if(!data||!data.data)return{...card,rawNM:null,cgc10:null,psa10:null};if(Array.isArray(data.data)){c=data.data.find(x=>x.cardNumber===card.cardNumber||(x.cardNumber&&x.cardNumber.split('/')[0]===String(card.cardNumber)));if(!c&&data.data.length)c=data.data[0]}else c=data.data;if(!c)return{...card,rawNM:null,cgc10:null,psa10:null};const rawNM=c.prices?.market??null;const g=c.ebay?.salesByGrade;const cgcD=g?.cgc10,psaD=g?.psa10;return{...card,rawNM,cgc10:getGP(cgcD),cgcConf:getConf(cgcD),cgcSales:cgcD?.count||0,psa10:getGP(psaD),psaConf:getConf(psaD),psaSales:psaD?.count||0,image:c.imageCdnUrl200||c.imageCdnUrl400||null,ebayGrades:g?Object.keys(g):[]}}catch(e){console.error('Scan error:',card.name,e);return{...card,rawNM:null,cgc10:null,psa10:null}}});results.push(...(await Promise.all(promises)).filter(Boolean));if(i+batch<cards.length)await new Promise(r=>setTimeout(r,1200))}return results}
+// Scan: fires as fast as rate limit allows, shows ETA
+async function scanBatch(cards,stId){
+  const results=[];
+  const startTime=Date.now();
+  let completed=0;
+  const total=cards.length;
+
+  function formatEta(){
+    if(!completed)return'estimating...';
+    const elapsed=(Date.now()-startTime)/1000;
+    const perCard=elapsed/completed;
+    const remaining=Math.ceil((total-completed)*perCard);
+    if(remaining<60)return'~'+remaining+'s left';
+    return'~'+Math.ceil(remaining/60)+'m left';
+  }
+
+  // Process cards one at a time to maximize speed within rate limit
+  // Concurrent batch of 3, no fixed delay - rate limiter handles throttling
+  const batch=3;
+  for(let i=0;i<cards.length;i+=batch){
+    const b=cards.slice(i,i+batch);
+    showSt(stId,'Scanning '+Math.min(i+batch,total)+'/'+total+' ('+formatEta()+')',Math.round(i/total*100));
+
+    const promises=b.map(async card=>{
+      try{
+        const data=await apiCall('/cards',{search:card.name+' '+card.cardNumber,set:card.searchName,includeEbay:'true',days:'90',limit:'5'});
+        let c=null;
+        if(!data||!data.data)return{...card,rawNM:null,cgc10:null,psa10:null};
+        if(Array.isArray(data.data)){
+          c=data.data.find(x=>x.cardNumber===card.cardNumber||(x.cardNumber&&x.cardNumber.split('/')[0]===String(card.cardNumber)));
+          if(!c&&data.data.length)c=data.data[0];
+        }else c=data.data;
+        if(!c)return{...card,rawNM:null,cgc10:null,psa10:null};
+        const rawNM=c.prices?.market??null;
+        const g=c.ebay?.salesByGrade;
+        const cgcD=g?.cgc10,psaD=g?.psa10;
+        return{...card,rawNM,cgc10:getGP(cgcD),cgcConf:getConf(cgcD),cgcSales:cgcD?.count||0,psa10:getGP(psaD),psaConf:getConf(psaD),psaSales:psaD?.count||0,image:c.imageCdnUrl200||c.imageCdnUrl400||null,ebayGrades:g?Object.keys(g):[]};
+      }catch(e){console.error('Scan error:',card.name,e);return{...card,rawNM:null,cgc10:null,psa10:null}}
+    });
+
+    const batchResults=await Promise.all(promises);
+    results.push(...batchResults.filter(Boolean));
+    completed+=b.length;
+
+    // Only delay if rate is getting high
+    if(rateTracker.count>=50&&i+batch<cards.length){
+      showSt(stId,'Rate limit pause... '+completed+'/'+total+' done ('+formatEta()+')',Math.round(completed/total*100));
+      while(rateTracker.count>=50)await new Promise(r=>setTimeout(r,500));
+    }
+  }
+  return results;
+}
 
 function addSpreads(r){r.forEach(c=>{c.cgcSpread=c.rawNM&&c.cgc10?(c.cgc10-c.rawNM):null;c.cgcPct=c.rawNM&&c.cgc10?((c.cgc10-c.rawNM)/c.rawNM)*100:null;c.psaSpread=c.rawNM&&c.psa10?(c.psa10-c.rawNM):null;c.psaPct=c.rawNM&&c.psa10?((c.psa10-c.rawNM)/c.rawNM)*100:null})}
-async function doScan(){const sr=document.getElementById('seriesSelect').value;if(!selectedSets.length){alert('Select at least one set');return}if(RARITY_SERIES.has(sr)&&!selectedRarities.length){alert('Select at least one rarity');return}const mn=parseFloat(document.getElementById('priceMin').value),mx=parseFloat(document.getElementById('priceMax').value);if(isNaN(mn)||isNaN(mx)||mn<0||mx<=0||mx<mn){alert('Enter a valid price range');return}const cards=getCards(selectedSets,sr,selectedRarities);if(!cards.length){alert('No cards match');return}document.getElementById('scanBtn').disabled=true;document.getElementById('scanAllBtn').disabled=true;try{const raw=await scanBatch(cards,'statusBar');addSpreads(raw);const r=raw.filter(c=>c.rawNM!=null&&c.rawNM>=mn&&c.rawNM<=mx);showSt('statusBar','Done: '+raw.length+' scanned, '+r.length+' in $'+mn+'-$'+mx,100);setTimeout(()=>hideSt('statusBar'),3000);if(!r.length){document.getElementById('summaryArea').innerHTML='';document.getElementById('resultsArea').innerHTML='<div class="es"><h2>No Cards in Range</h2><p style="font-size:9px">'+raw.length+' cards scanned but none had raw NM between $'+mn+' and $'+mx+'</p></div>';document.getElementById('footerArea').innerHTML=''}else renderResults(r)}catch(e){showSt('statusBar','Error: '+e.message,0)}finally{document.getElementById('scanBtn').disabled=false;document.getElementById('scanAllBtn').disabled=false}}
-async function doScanAll(){const sr=document.getElementById('seriesSelect').value;if(!sr){alert('Select a series');return}if(RARITY_SERIES.has(sr)&&!selectedRarities.length){alert('Select at least one rarity');return}const mn=parseFloat(document.getElementById('priceMin').value),mx=parseFloat(document.getElementById('priceMax').value);if(isNaN(mn)||isNaN(mx)||mn<0||mx<=0||mx<mn){alert('Enter a valid price range');return}const allSids=getSetsFor(sr).map(([sid])=>sid);const cards=getCards(allSids,sr,selectedRarities);if(!cards.length){alert('No cards match');return}document.getElementById('scanBtn').disabled=true;document.getElementById('scanAllBtn').disabled=true;try{const raw=await scanBatch(cards,'statusBar');addSpreads(raw);const r=raw.filter(c=>c.rawNM!=null&&c.rawNM>=mn&&c.rawNM<=mx);showSt('statusBar','Done: '+raw.length+' scanned, '+r.length+' in $'+mn+'-$'+mx,100);setTimeout(()=>hideSt('statusBar'),3000);if(!r.length){document.getElementById('summaryArea').innerHTML='';document.getElementById('resultsArea').innerHTML='<div class="es"><h2>No Cards in Range</h2><p style="font-size:9px">'+raw.length+' scanned, none in $'+mn+'-$'+mx+'</p></div>';document.getElementById('footerArea').innerHTML=''}else renderResults(r)}catch(e){showSt('statusBar','Error: '+e.message,0)}finally{document.getElementById('scanBtn').disabled=false;document.getElementById('scanAllBtn').disabled=false}}
+
+async function doScan(){const sr=document.getElementById('seriesSelect').value;if(!selectedSets.length){alert('Select at least one set');return}if(RARITY_SERIES.has(sr)&&!selectedRarities.length){alert('Select at least one rarity');return}const mn=parseFloat(document.getElementById('priceMin').value),mx=parseFloat(document.getElementById('priceMax').value);if(isNaN(mn)||isNaN(mx)||mn<0||mx<=0||mx<mn){alert('Enter a valid price range');return}const cards=getCards(selectedSets,sr,selectedRarities);if(!cards.length){alert('No cards match');return}document.getElementById('scanBtn').disabled=true;document.getElementById('scanAllBtn').disabled=true;try{const raw=await scanBatch(cards,'statusBar');addSpreads(raw);const r=raw.filter(c=>c.rawNM!=null&&c.rawNM>=mn&&c.rawNM<=mx);const failed=raw.filter(c=>c.rawNM==null).length;showSt('statusBar','Done: '+r.length+' in range / '+raw.length+' scanned'+(failed?' ('+failed+' failed)':''),100);setTimeout(()=>hideSt('statusBar'),4000);if(!r.length){document.getElementById('summaryArea').innerHTML='';document.getElementById('resultsArea').innerHTML='<div class="es"><h2>No Cards in Range</h2><p style="font-size:9px">'+raw.length+' scanned'+(failed?', '+failed+' API errors':'')+'. None with raw NM in $'+mn+'-$'+mx+'</p></div>';document.getElementById('footerArea').innerHTML=''}else renderResults(r)}catch(e){showSt('statusBar','Error: '+e.message,0)}finally{document.getElementById('scanBtn').disabled=false;document.getElementById('scanAllBtn').disabled=false}}
+
+async function doScanAll(){const sr=document.getElementById('seriesSelect').value;if(!sr){alert('Select a series');return}if(RARITY_SERIES.has(sr)&&!selectedRarities.length){alert('Select at least one rarity');return}const mn=parseFloat(document.getElementById('priceMin').value),mx=parseFloat(document.getElementById('priceMax').value);if(isNaN(mn)||isNaN(mx)||mn<0||mx<=0||mx<mn){alert('Enter a valid price range');return}const allSids=getSetsFor(sr).map(([sid])=>sid);const cards=getCards(allSids,sr,selectedRarities);if(!cards.length){alert('No cards match');return}document.getElementById('scanBtn').disabled=true;document.getElementById('scanAllBtn').disabled=true;try{const raw=await scanBatch(cards,'statusBar');addSpreads(raw);const r=raw.filter(c=>c.rawNM!=null&&c.rawNM>=mn&&c.rawNM<=mx);const failed=raw.filter(c=>c.rawNM==null).length;showSt('statusBar','Done: '+r.length+' in range / '+raw.length+' scanned'+(failed?' ('+failed+' failed)':''),100);setTimeout(()=>hideSt('statusBar'),4000);if(!r.length){document.getElementById('summaryArea').innerHTML='';document.getElementById('resultsArea').innerHTML='<div class="es"><h2>No Cards in Range</h2><p style="font-size:9px">'+raw.length+' scanned'+(failed?', '+failed+' errors':'')+'. None in $'+mn+'-$'+mx+'</p></div>';document.getElementById('footerArea').innerHTML=''}else renderResults(r)}catch(e){showSt('statusBar','Error: '+e.message,0)}finally{document.getElementById('scanBtn').disabled=false;document.getElementById('scanAllBtn').disabled=false}}
+
 function getTier(p){if(p===null)return'tcc';if(p>=100)return'ts';if(p>=50)return'ta';if(p>=20)return'tbb';if(p>=0)return'tcc';return'tv'}
 function tgc(r){if(/Special Ill/i.test(r))return'tg-s';if(/Illustration Rare/i.test(r))return'tg-i';if(/Holo/i.test(r))return'tg-h';return'tg-o'}
 function shr(r){const m={'Special Illustration Rare':'SIR','Illustration Rare':'IR','Holo Rare':'Holo','Ultra Rare':'UR','Hyper Rare':'HR','Double Rare':'DR','ACE SPEC Rare':'ACE'};return m[r]||r}
@@ -229,13 +299,13 @@ function calcSt(a,k){const w=a.filter(r=>(k==='psa'?r.psaPct:r.cgcPct)!==null);c
 function sumH(s,tn,tp,lbl){const pre=lbl?'<div style="font-family:Syne;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);padding:6px 10px 0">'+lbl+'</div>':'';return pre+'<div class="smb"><div class="smc"><div class="l">Cards</div><div class="v">'+s.total+'</div><div class="d">'+s.wd+' w/ data</div></div><div class="smc"><div class="l">Avg Spread</div><div class="v" style="color:'+(s.avg>0?'var(--accent)':'var(--red)')+'">'+(s.avg>0?'+':'')+s.avg.toFixed(1)+'%</div></div><div class="smc"><div class="l">Top</div><div class="v" style="color:var(--accent);font-size:16px">'+tn+'</div><div class="d">'+tp+'</div></div><div class="smc"><div class="l">No Data</div><div class="v" style="color:'+(s.nd>0?'var(--yel)':'var(--dim)')+'">'+s.nd+'</div></div></div>'}
 function renderResults(results){const gr=document.getElementById('graderSelect').value;let html='';if(gr==='cgc'||gr==='both'){const sorted=sortS(results,'cgc'),s=calcSt(results,'cgc');document.getElementById('summaryArea').innerHTML=sumH(s,s.top?s.top.name:'--',s.top?'+'+s.top.cgcPct.toFixed(1)+'%':'',gr==='both'?'CGC 10':null);html+='<div class="res">';if(gr==='both')html+='<div class="sh2">CGC 10</div>';html+=hdr('CGC 10')+'<div class="cgr">';sorted.forEach((r,i)=>html+=row(r,i,'cgc'));html+='</div>';if(gr==='both'){const ps=sortS(results,'psa'),pst=calcSt(results,'psa');document.getElementById('summaryArea').innerHTML+=sumH(pst,pst.top?pst.top.name:'--',pst.top?'+'+pst.top.psaPct.toFixed(1)+'%':'','PSA 10');html+='<div class="sh2 psa" style="margin-top:14px">PSA 10</div>'+hdr('PSA 10')+'<div class="cgr">';ps.forEach((r,i)=>html+=row(r,i,'psa'));html+='</div>'}html+='</div>'}else{const sorted=sortS(results,'psa'),s=calcSt(results,'psa');document.getElementById('summaryArea').innerHTML=sumH(s,s.top?s.top.name:'--',s.top?'+'+s.top.psaPct.toFixed(1)+'%':'',null);html+='<div class="res">'+hdr('PSA 10')+'<div class="cgr">';sorted.forEach((r,i)=>html+=row(r,i,'psa'));html+='</div></div>'}document.getElementById('resultsArea').innerHTML=html;document.getElementById('footerArea').innerHTML='<div class="fn"><h3>Analysis</h3><div class="fg"><div class="fs"><h4>Tiers</h4><ul><li><span style="color:var(--accent)">S</span> 100%+ <span style="color:var(--blue)">A</span> 50-99% <span style="color:var(--yel)">B</span> 20-49%</li><li><span style="color:var(--dim)">C</span> 0-19% <span style="color:var(--red)">Avoid</span> negative</li></ul></div><div class="fs"><h4>Data</h4><ul><li>Graded 10=eBay sold 90d / 30d smart>median>avg</li><li>Raw=TCGPlayer NM / Costs not included</li></ul></div></div></div>'}
 
-// BUDGET OPTIMIZER
+// BUDGET
 async function runBudget(){const budget=parseFloat(document.getElementById('budgetTotal').value);const mn=parseFloat(document.getElementById('budgetMin').value),mx=parseFloat(document.getElementById('budgetMax').value);const sr=document.getElementById('budgetSeries').value;const grader=document.getElementById('budgetGrader').value;if(!budget||budget<=0){alert('Enter a budget');return}if(isNaN(mn)||isNaN(mx)||mx<=0||mx<mn){alert('Enter valid min/max');return}if(!sr){alert('Select a series');return}if(RARITY_SERIES.has(sr)&&!budgetRarities.length){alert('Select at least one rarity tier');return}
 const sids=budgetSets.length?budgetSets:getSetsFor(sr).map(([sid])=>sid);const allCards=getCards(sids,sr,budgetRarities);if(!allCards.length){alert('No cards match');return}
 document.getElementById('bRunBtn').disabled=true;
 try{const raw=await scanBatch(allCards,'bStatus');addSpreads(raw);
 const viable=raw.filter(c=>{if(c.rawNM==null||c.rawNM<mn||c.rawNM>mx)return false;let sp=null;if(grader==='cgc')sp=c.cgcPct;else if(grader==='psa')sp=c.psaPct;else{sp=Math.max(c.cgcPct||0,c.psaPct||0)||null}return sp!=null&&sp>0}).map(c=>{let sp;if(grader==='cgc')sp=c.cgcPct;else if(grader==='psa')sp=c.psaPct;else sp=Math.max(c.cgcPct||0,c.psaPct||0);return{...c,bestSpread:sp}}).sort((a,b)=>b.bestSpread-a.bestSpread);
-if(!viable.length){hideSt('bStatus');document.getElementById('budgetResultArea').innerHTML='<div class="es"><h2>No Opportunities</h2><p style="font-size:8px">'+raw.length+' scanned, none with positive spread in $'+mn+'-$'+mx+'</p></div>';return}
+if(!viable.length){hideSt('bStatus');const failed=raw.filter(c=>c.rawNM==null).length;document.getElementById('budgetResultArea').innerHTML='<div class="es"><h2>No Opportunities</h2><p style="font-size:8px">'+raw.length+' scanned'+(failed?', '+failed+' errors':'')+'. None with positive spread in $'+mn+'-$'+mx+'</p></div>';return}
 const alloc=new Map();let remaining=budget;
 for(const c of viable){if(remaining<c.rawNM)continue;const key=c.name+'|'+c.cardNumber+'|'+c.setName;if(!alloc.has(key)){alloc.set(key,{...c,qty:1,cost:c.rawNM});remaining-=c.rawNM}if(remaining<=0)break}
 let passes=0;while(remaining>mn&&passes<50){let bought=false;for(const c of viable){if(c.rawNM>remaining)continue;const key=c.name+'|'+c.cardNumber+'|'+c.setName;const existing=alloc.get(key);if(existing){existing.qty++;existing.cost+=c.rawNM;remaining-=c.rawNM;bought=true}else{alloc.set(key,{...c,qty:1,cost:c.rawNM});remaining-=c.rawNM;bought=true}if(remaining<mn)break}if(!bought)break;passes++}
