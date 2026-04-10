@@ -176,7 +176,7 @@ const rateTracker={calls:[],get count(){const now=Date.now();this.calls=this.cal
 const _rlDiv=document.createElement('div');
 _rlDiv.id='rateBar';
 _rlDiv.style.cssText='padding:4px 14px;background:#1a1a25;border-bottom:1px solid #2a2a3a;font-family:Space Mono,monospace;font-size:10px;color:#8888a0;display:flex;justify-content:space-between;align-items:center';
-_rlDiv.innerHTML='<span>API: <b id="rlCount" style="color:#00e5a0">0</b>/60 calls (last 60s)</span><span id="rlBar" style="width:100px;height:4px;background:#2a2a3a;border-radius:2px;overflow:hidden;display:inline-block;margin-left:8px"><span id="rlFill" style="display:block;height:100%;width:0%;background:#00e5a0;transition:width .3s"></span></span>';
+_rlDiv.innerHTML='<span>REQ: <b id="rlCount" style="color:#00e5a0">0</b>/60 requests (last 60s)</span><span id="rlBar" style="width:100px;height:4px;background:#2a2a3a;border-radius:2px;overflow:hidden;display:inline-block;margin-left:8px"><span id="rlFill" style="display:block;height:100%;width:0%;background:#00e5a0;transition:width .3s"></span></span>';
 document.body.insertBefore(_rlDiv,document.body.firstChild);
 function updateRL(){const c=rateTracker.count;document.getElementById('rlCount').textContent=c;document.getElementById('rlCount').style.color=c>=50?'#ff4466':c>=35?'#ffcc00':'#00e5a0';document.getElementById('rlFill').style.width=(c/60*100)+'%';document.getElementById('rlFill').style.background=c>=50?'#ff4466':c>=35?'#ffcc00':'#00e5a0'}
 setInterval(updateRL,1000);
@@ -203,14 +203,22 @@ function updateBRarDD(){if(!RARITY_SERIES.has(document.getElementById('budgetSer
 document.getElementById('budgetSeries').addEventListener('change',()=>{budgetSets=[];budgetRarities=[];updateBSetDD();updateBRarVis();updateBRarDD()});
 function getCards(sids,sr,rars){const cards=[];const usesR=RARITY_SERIES.has(sr);sids.forEach(sid=>{const s=SD[sid];if(usesR&&rars.length){rars.forEach(rar=>{if(s.c[rar])Object.entries(s.c[rar]).forEach(([cn,nm])=>cards.push({setId:sid,setName:s.sn,searchName:s.sn,cardNumber:cn,name:nm,rarity:rar}))})}else if(!usesR){for(const[rar,crds]of Object.entries(s.c))Object.entries(crds).forEach(([cn,nm])=>cards.push({setId:sid,setName:s.sn,searchName:s.sn,cardNumber:cn,name:nm,rarity:rar}))}});return cards}
 
-// Smarter rate-aware API call
-async function waitForRate(){while(rateTracker.count>=55){updateRL();await new Promise(r=>setTimeout(r,500))}}
-async function apiCall(ep,params){
+// Fast, rate-aware API helpers
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function waitForRate(threshold=58){while(rateTracker.count>=threshold){updateRL();await sleep(250)}}
+function toArr(v){if(!v)return[];return Array.isArray(v)?v:[v]}
+function uniqBy(arr,keyFn){const seen=new Set(),out=[];for(const item of arr){const k=keyFn(item);if(seen.has(k))continue;seen.add(k);out.push(item)}return out}
+const setResolveCache=new Map();
+
+async function apiCall(ep,params,opts={}){
+  const threshold=opts.threshold??58;
+  const maxRetries=opts.maxRetries??1;
   const cleaned=Object.fromEntries(Object.entries(params||{}).filter(([_,v])=>v!==undefined&&v!==null&&v!==''));
   const qs=Object.entries(cleaned).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
   const url=API_BASE+ep+(qs?'?'+qs:'');
-  await waitForRate();
-  for(let attempt=0;attempt<4;attempt++){
+  let lastMessage='Unknown API error';
+  for(let attempt=0;attempt<=maxRetries;attempt++){
+    await waitForRate(threshold);
     const resp=await fetch(url);
     if(resp.ok){
       const txt=await resp.text();
@@ -218,22 +226,24 @@ async function apiCall(ep,params){
     }
     let detail='';
     try{detail=await resp.text()}catch(_){detail=''}
-    if(resp.status===403||resp.status===429){
-      while(rateTracker.count>=45){updateRL();await new Promise(r=>setTimeout(r,1000))}
-      continue;
-    }
     let message='API '+resp.status;
     if(detail){
       try{
         const parsed=JSON.parse(detail);
         message=parsed.message?message+': '+parsed.message:message;
       }catch(_){
-        if(detail.trim())message=message+': '+detail.trim().slice(0,120)
+        if(detail.trim())message=message+': '+detail.trim().slice(0,140)
       }
+    }
+    lastMessage=message;
+    if((resp.status===403||resp.status===429)&&attempt<maxRetries){
+      const retryAfter=parseInt(resp.headers.get('Retry-After')||'0',10);
+      await sleep(retryAfter>0?retryAfter*1000:750);
+      continue;
     }
     throw new Error(message);
   }
-  return null;
+  throw new Error(lastMessage);
 }
 
 function showSt(id,t,p){const b=document.getElementById(id);b.style.display='flex';b.querySelector('span').innerHTML='<span class="spinner"></span> '+t;const f=b.querySelector('.pgf');if(f&&p!==undefined)f.style.width=p+'%'}
@@ -243,6 +253,31 @@ function getConf(d){if(!d)return null;if(d.smartMarketPrice&&d.smartMarketPrice.
 function normTxt(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
 function mainNum(v){return String(v||'').split('/')[0].trim()}
 function sameNum(a,b){return mainNum(a)===mainNum(b)}
+
+async function resolveSetMeta(setName){
+  const key=normTxt(setName);
+  if(setResolveCache.has(key))return setResolveCache.get(key);
+  let resolved={setName,setId:null};
+  try{
+    const data=await apiCall('/sets',{search:setName,limit:'10'},{maxRetries:0,threshold:58});
+    const arr=toArr(data&&data.data);
+    if(arr.length){
+      const scored=arr.map(s=>{
+        const sn=normTxt(s.name),tn=normTxt(setName);
+        let score=0;
+        if(sn===tn)score+=100;
+        else if(sn.includes(tn)||tn.includes(sn))score+=60;
+        if(normTxt(s.series)===normTxt(document.getElementById('seriesSelect').value||''))score+=20;
+        return{set:s,score};
+      }).sort((a,b)=>b.score-a.score);
+      const best=scored[0]&&scored[0].score>=60?scored[0].set:null;
+      if(best)resolved={setName:best.name||setName,setId:best.tcgPlayerNumericId!=null?String(best.tcgPlayerNumericId):null};
+    }
+  }catch(_){}
+  setResolveCache.set(key,resolved);
+  return resolved;
+}
+
 function findBestCardMatch(data,card){
   const arr=Array.isArray(data)?data:[data];
   if(!arr.length)return null;
@@ -251,98 +286,152 @@ function findBestCardMatch(data,card){
     let score=0;
     const xn=normTxt(x.name),xs=normTxt(x.setName),xr=normTxt(x.rarity);
     if(sameNum(x.cardNumber,card.cardNumber))score+=100;
-    if(xn===tn)score+=50;else if(xn.includes(tn)||tn.includes(xn))score+=20;
-    if(xs===ts)score+=40;else if(xs.includes(ts)||ts.includes(xs))score+=15;
-    if(tr&&xr===tr)score+=10;
+    if(xn===tn)score+=60;else if(xn.includes(tn)||tn.includes(xn))score+=25;
+    if(xs===ts)score+=35;else if(xs.includes(ts)||ts.includes(xs))score+=15;
+    if(tr&&xr===tr)score+=15;
     return{card:x,score};
   }).sort((a,b)=>b.score-a.score);
   return scored[0]&&scored[0].score>=100?scored[0].card:null;
 }
+
 function mapCardResult(card,c,source,errorReason){
   const rawNM=c?.prices?.market??null;
   const g=c?.ebay?.salesByGrade||null;
   const cgcD=g?.cgc10,psaD=g?.psa10;
-  return{...card,rawNM,cgc10:getGP(cgcD),cgcConf:getConf(cgcD),cgcSales:cgcD?.count||0,psa10:getGP(psaD),psaConf:getConf(psaD),psaSales:psaD?.count||0,image:c?.imageCdnUrl200||c?.imageCdnUrl400||null,ebayGrades:g?Object.keys(g):[],matchSource:source||null,errorReason:errorReason||null,matchedSetName:c?.setName||null,matchedCardName:c?.name||null};
+  return{...card,tcgPlayerId:c?.tcgPlayerId||null,rawNM,cgc10:getGP(cgcD),cgcConf:getConf(cgcD),cgcSales:cgcD?.count||0,psa10:getGP(psaD),psaConf:getConf(psaD),psaSales:psaD?.count||0,image:c?.imageCdnUrl200||c?.imageCdnUrl400||null,ebayGrades:g?Object.keys(g):[],matchSource:source||null,errorReason:errorReason||null,matchedSetName:c?.setName||null,matchedCardName:c?.name||null};
 }
-async function fetchCardData(card){
-  const attempts=[
-    {label:'search+set+ebay',params:{search:card.name+' '+card.cardNumber,set:card.searchName,includeEbay:'true',days:'90',limit:'10'}},
-    {label:'search+fullset+ebay',params:{search:card.name+' '+card.cardNumber+' '+card.searchName,includeEbay:'true',days:'90',limit:'10'}},
-    {label:'search+set+raw',params:{search:card.name+' '+card.cardNumber,set:card.searchName,limit:'10'}},
-    {label:'search+fullset+raw',params:{search:card.name+' '+card.cardNumber+' '+card.searchName,limit:'10'}}
-  ];
-  let lastReason='No data returned';
-  for(const attempt of attempts){
-    try{
-      const data=await apiCall('/cards',attempt.params);
-      if(!data||!data.data){lastReason='No data returned ['+attempt.label+']';continue}
-      const matched=findBestCardMatch(data.data,card);
-      if(!matched){lastReason='No match found ['+attempt.label+']';continue}
-      let issue=null;
-      if((attempt.label.includes('ebay'))&&!matched.ebay)issue='Matched card returned without eBay data ['+attempt.label+']';
-      if(matched.prices?.market==null&&attempt.label.includes('raw'))issue='Matched card returned without raw market price ['+attempt.label+']';
-      return mapCardResult(card,matched,attempt.label,issue);
-    }catch(e){
-      lastReason=(e&&e.message?e.message:'Unknown API error')+' ['+attempt.label+']';
-    }
+
+async function fetchPagedCards(params){
+  let offset=0,all=[],lastMeta=null;
+  while(true){
+    const data=await apiCall('/cards',{...params,limit:String(params.limit||200),offset:String(offset)},{maxRetries:1,threshold:58});
+    const arr=toArr(data&&data.data);
+    if(!arr.length)break;
+    all.push(...arr);
+    lastMeta=data&&data.metadata?data.metadata:null;
+    const count=(data&&data.metadata&&data.metadata.count!=null)?data.metadata.count:arr.length;
+    const hasMore=!!(data&&data.metadata&&data.metadata.hasMore);
+    if(!hasMore||!count)break;
+    offset+=count;
+    if(offset>1000)break;
   }
-  return{...card,rawNM:null,cgc10:null,psa10:null,cgcConf:null,psaConf:null,cgcSales:0,psaSales:0,image:null,ebayGrades:[],matchSource:null,errorReason:lastReason};
+  return{cards:uniqBy(all,c=>String(c&&c.tcgPlayerId||'')+'|'+String(c&&c.cardNumber||'')),metadata:lastMeta};
 }
-function summarizeFailures(raw){
-  const failed=raw.filter(c=>c.rawNM==null);
-  const counts={};
-  failed.forEach(c=>{const k=c.errorReason||'Unknown failure';counts[k]=(counts[k]||0)+1});
-  return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-}
-function renderNoResults(mn,mx,raw,title){
-  const failed=raw.filter(c=>c.rawNM==null);
-  const priced=raw.filter(c=>c.rawNM!=null);
-  const buckets=summarizeFailures(raw);
-  let h='<div class="es"><h2>No Cards in Range</h2><p style="font-size:9px">'+raw.length+' scanned'+(failed.length?', '+failed.length+' request issues':'')+'. None in $'+mn+'-$'+mx+'</p></div>';
-  if(failed.length){
-    h+='<div class="fn"><h3>Diagnostics</h3><div class="fg"><div class="fs"><h4>Summary</h4><ul>';
-    buckets.slice(0,4).forEach(([reason,count])=>{h+='<li>'+count+'x '+reason+'</li>'});
-    h+='</ul></div><div class="fs"><h4>Cards Affected</h4><ul>';
-    failed.slice(0,8).forEach(c=>{h+='<li>'+c.name+' '+c.cardNumber+' / '+c.setName+' :: '+(c.errorReason||'Unknown failure')+'</li>'});
-    h+='</ul></div>';
-    if(priced.length){
-      h+='<div class="fs"><h4>Working Calls</h4><ul>';
-      priced.slice(0,8).forEach(c=>{h+='<li>'+c.name+' '+c.cardNumber+' / $'+c.rawNM.toFixed(2)+'</li>'});
-      h+='</ul></div>';
-    }
-    h+='</div></div>';
+
+async function fetchSetRawCards(setName){
+  let res=await fetchPagedCards({set:setName,fetchAllInSet:'true',sortBy:'cardNumber',sortOrder:'asc',limit:'200'});
+  if(res.cards.length)return{cards:res.cards,source:'set+fetchAll+raw'};
+  const resolved=await resolveSetMeta(setName);
+  if(resolved&&resolved.setId){
+    res=await fetchPagedCards({setId:resolved.setId,fetchAllInSet:'true',sortBy:'cardNumber',sortOrder:'asc',limit:'200'});
+    if(res.cards.length)return{cards:res.cards,source:'setId+fetchAll+raw'};
   }
-  document.getElementById('summaryArea').innerHTML='';
-  document.getElementById('resultsArea').innerHTML=h;
-  document.getElementById('footerArea').innerHTML='';
-}
-
-async function scanBatch(cards,stId){
-  const results=[];const startTime=Date.now();let completed=0;const total=cards.length;
-  const needsDelay=total>55;
-  const batchSize=needsDelay?3:5;
-
-  function eta(){if(!completed)return'';const elapsed=(Date.now()-startTime)/1000;const perCard=elapsed/completed;const rem=Math.ceil((total-completed)*perCard);return rem<60?' ~'+rem+'s':' ~'+Math.ceil(rem/60)+'m'}
-
-  for(let i=0;i<cards.length;i+=batchSize){
-    const b=cards.slice(i,i+batchSize);
-    showSt(stId,(completed)+'/'+total+eta(),Math.round(i/total*100));
-    const batchResults=await Promise.all(b.map(card=>fetchCardData(card)));
-    results.push(...batchResults.filter(Boolean));
-    completed+=b.length;
+  if(resolved&&resolved.setName&&normTxt(resolved.setName)!==normTxt(setName)){
+    res=await fetchPagedCards({set:resolved.setName,fetchAllInSet:'true',sortBy:'cardNumber',sortOrder:'asc',limit:'200'});
+    if(res.cards.length)return{cards:res.cards,source:'resolvedSet+fetchAll+raw'};
   }
-  return results;
+  return{cards:[],source:'set+fetchAll+raw'};
 }
 
-function addSpreads(r){r.forEach(c=>{c.cgcSpread=c.rawNM&&c.cgc10?(c.cgc10-c.rawNM):null;c.cgcPct=c.rawNM&&c.cgc10?((c.cgc10-c.rawNM)/c.rawNM)*100:null;c.psaSpread=c.rawNM&&c.psa10?(c.psa10-c.rawNM):null;c.psaPct=c.rawNM&&c.psa10?((c.psa10-c.rawNM)/c.rawNM)*100:null})}
+function mergeEbayData(base,fullCard){
+  const g=fullCard?.ebay?.salesByGrade||null;
+  const cgcD=g?.cgc10,psaD=g?.psa10;
+  return{...base,cgc10:getGP(cgcD),cgcConf:getConf(cgcD),cgcSales:cgcD?.count||0,psa10:getGP(psaD),psaConf:getConf(psaD),psaSales:psaD?.count||0,ebayGrades:g?Object.keys(g):[],image:base.image||fullCard?.imageCdnUrl200||fullCard?.imageCdnUrl400||null,matchSource:base.matchSource?base.matchSource+' + tcgPlayerId+ebay':'tcgPlayerId+ebay',errorReason:base.errorReason||(!g?'Matched raw card returned without eBay data [tcgPlayerId+ebay]':null)};
+}
+
+function cardKey(c){return normTxt(c.setName||c.searchName)+'|'+mainNum(c.cardNumber)+'|'+normTxt(c.name)}
+
+async function scanBatch(cards,stId,opts={}){
+  const priceMin=opts.priceMin;
+  const priceMax=opts.priceMax;
+  const total=cards.length;
+  const startTime=Date.now();
+  let phaseDone=0;
+
+  function eta(done,totalCount){
+    if(!done)return'';
+    const elapsed=(Date.now()-startTime)/1000;
+    const perUnit=elapsed/done;
+    const rem=Math.ceil((totalCount-done)*perUnit);
+    return rem<60?' ~'+rem+'s':' ~'+Math.ceil(rem/60)+'m';
+  }
+
+  const bySet=new Map();
+  cards.forEach(card=>{
+    if(!bySet.has(card.setId))bySet.set(card.setId,{setId:card.setId,setName:card.searchName,cards:[]});
+    bySet.get(card.setId).cards.push(card);
+  });
+  const setGroups=[...bySet.values()];
+  const rawResults=[];
+  const rawBatchSize=setGroups.length<=2?setGroups.length:2;
+
+  for(let i=0;i<setGroups.length;i+=rawBatchSize){
+    const batch=setGroups.slice(i,i+rawBatchSize);
+    showSt(stId,'Raw '+Math.min(i+batch.length,setGroups.length)+'/'+setGroups.length+eta(i,setGroups.length),Math.round((i/setGroups.length)*35));
+    const fetched=await Promise.all(batch.map(async group=>{
+      try{
+        const data=await fetchSetRawCards(group.setName);
+        return{group,data};
+      }catch(e){
+        return{group,error:e};
+      }
+    }));
+    fetched.forEach(item=>{
+      if(item.error){
+        item.group.cards.forEach(card=>{
+          rawResults.push({...card,tcgPlayerId:null,rawNM:null,cgc10:null,psa10:null,cgcConf:null,psaConf:null,cgcSales:0,psaSales:0,image:null,ebayGrades:[],matchSource:null,errorReason:item.error.message||'Set fetch failed'});
+        });
+        return;
+      }
+      const setCards=item.data&&item.data.cards?item.data.cards:[];
+      item.group.cards.forEach(card=>{
+        const matched=findBestCardMatch(setCards,card);
+        if(!matched){
+          rawResults.push({...card,tcgPlayerId:null,rawNM:null,cgc10:null,psa10:null,cgcConf:null,psaConf:null,cgcSales:0,psaSales:0,image:null,ebayGrades:[],matchSource:null,errorReason:'No matching card found ['+(item.data&&item.data.source?item.data.source:'set+fetchAll+raw')+']'});
+          return;
+        }
+        const issue=matched.prices?.market==null?'Matched card returned without raw market price ['+(item.data&&item.data.source?item.data.source:'set+fetchAll+raw')+']':null;
+        rawResults.push(mapCardResult(card,matched,item.data&&item.data.source?item.data.source:'set+fetchAll+raw',issue));
+      });
+    });
+  }
+
+  const needEbay=rawResults.filter(c=>{
+    if(c.rawNM==null||!c.tcgPlayerId)return false;
+    if(priceMin!=null&&c.rawNM<priceMin)return false;
+    if(priceMax!=null&&c.rawNM>priceMax)return false;
+    return true;
+  });
+
+  if(!needEbay.length)return rawResults;
+
+  const ebayBatchSize=needEbay.length<=10?5:3;
+  const ebayResults=new Map();
+
+  for(let i=0;i<needEbay.length;i+=ebayBatchSize){
+    const batch=needEbay.slice(i,i+ebayBatchSize);
+    showSt(stId,'Grades '+Math.min(i+batch.length,needEbay.length)+'/'+needEbay.length+eta(i,needEbay.length),35+Math.round((i/needEbay.length)*65));
+    const fetched=await Promise.all(batch.map(async card=>{
+      try{
+        const data=await apiCall('/cards',{tcgPlayerId:card.tcgPlayerId,includeEbay:'true',days:'90'},{maxRetries:1,threshold:58});
+        const full=Array.isArray(data&&data.data)?data.data[0]:(data&&data.data?data.data:null);
+        if(!full)return{key:cardKey(card),value:{...card,errorReason:card.errorReason||'No data returned [tcgPlayerId+ebay]'}};
+        return{key:cardKey(card),value:mergeEbayData(card,full)};
+      }catch(e){
+        return{key:cardKey(card),value:{...card,errorReason:card.errorReason||((e&&e.message?e.message:'Unknown API error')+' [tcgPlayerId+ebay]')}};
+      }
+    }));
+    fetched.forEach(x=>ebayResults.set(x.key,x.value));
+  }
+
+  return rawResults.map(card=>ebayResults.get(cardKey(card))||card);
+}
 
 async function doScan(){const sr=document.getElementById('seriesSelect').value;if(!selectedSets.length){alert('Select at least one set');return}if(RARITY_SERIES.has(sr)&&!selectedRarities.length){alert('Select at least one rarity');return}const mn=parseFloat(document.getElementById('priceMin').value),mx=parseFloat(document.getElementById('priceMax').value);if(isNaN(mn)||isNaN(mx)||mn<0||mx<=0||mx<mn){alert('Enter a valid price range');return}const cards=getCards(selectedSets,sr,selectedRarities);if(!cards.length){alert('No cards match');return}
-if(rateTracker.count>=50){showSt('statusBar','Waiting for rate limit to clear...',0);while(rateTracker.count>=30){updateRL();await new Promise(r=>setTimeout(r,1000))}}
-document.getElementById('scanBtn').disabled=true;document.getElementById('scanAllBtn').disabled=true;try{const raw=await scanBatch(cards,'statusBar');addSpreads(raw);const r=raw.filter(c=>c.rawNM!=null&&c.rawNM>=mn&&c.rawNM<=mx);const failed=raw.filter(c=>c.rawNM==null).length;showSt('statusBar','Done: '+r.length+' in $'+mn+'-$'+mx+' / '+raw.length+' total'+(failed?' ('+failed+' issues)':''),100);setTimeout(()=>hideSt('statusBar'),4000);if(!r.length)renderNoResults(mn,mx,raw,'Scan');else renderResults(r)}catch(e){showSt('statusBar','Error: '+e.message,0)}finally{document.getElementById('scanBtn').disabled=false;document.getElementById('scanAllBtn').disabled=false}}
+document.getElementById('scanBtn').disabled=true;document.getElementById('scanAllBtn').disabled=true;try{const raw=await scanBatch(cards,'statusBar',{priceMin:mn,priceMax:mx,grader:document.getElementById('graderSelect').value});addSpreads(raw);const r=raw.filter(c=>c.rawNM!=null&&c.rawNM>=mn&&c.rawNM<=mx);const failed=raw.filter(c=>c.rawNM==null).length;showSt('statusBar','Done: '+r.length+' in $'+mn+'-$'+mx+' / '+raw.length+' total'+(failed?' ('+failed+' issues)':''),100);setTimeout(()=>hideSt('statusBar'),4000);if(!r.length)renderNoResults(mn,mx,raw,'Selected Scan');else renderResults(r)}catch(e){showSt('statusBar','Error: '+e.message,0)}finally{document.getElementById('scanBtn').disabled=false;document.getElementById('scanAllBtn').disabled=false}}
 
 async function doScanAll(){const sr=document.getElementById('seriesSelect').value;if(!sr){alert('Select a series');return}if(RARITY_SERIES.has(sr)&&!selectedRarities.length){alert('Select at least one rarity');return}const mn=parseFloat(document.getElementById('priceMin').value),mx=parseFloat(document.getElementById('priceMax').value);if(isNaN(mn)||isNaN(mx)||mn<0||mx<=0||mx<mn){alert('Enter a valid price range');return}const allSids=getSetsFor(sr).map(([sid])=>sid);const cards=getCards(allSids,sr,selectedRarities);if(!cards.length){alert('No cards match');return}
-if(rateTracker.count>=50){showSt('statusBar','Waiting for rate limit...',0);while(rateTracker.count>=30){updateRL();await new Promise(r=>setTimeout(r,1000))}}
-document.getElementById('scanBtn').disabled=true;document.getElementById('scanAllBtn').disabled=true;try{const raw=await scanBatch(cards,'statusBar');addSpreads(raw);const r=raw.filter(c=>c.rawNM!=null&&c.rawNM>=mn&&c.rawNM<=mx);const failed=raw.filter(c=>c.rawNM==null).length;showSt('statusBar','Done: '+r.length+' in range / '+raw.length+' total'+(failed?' ('+failed+' issues)':''),100);setTimeout(()=>hideSt('statusBar'),4000);if(!r.length)renderNoResults(mn,mx,raw,'Scan All');else renderResults(r)}catch(e){showSt('statusBar','Error: '+e.message,0)}finally{document.getElementById('scanBtn').disabled=false;document.getElementById('scanAllBtn').disabled=false}}
+document.getElementById('scanBtn').disabled=true;document.getElementById('scanAllBtn').disabled=true;try{const raw=await scanBatch(cards,'statusBar',{priceMin:mn,priceMax:mx,grader:document.getElementById('graderSelect').value});addSpreads(raw);const r=raw.filter(c=>c.rawNM!=null&&c.rawNM>=mn&&c.rawNM<=mx);const failed=raw.filter(c=>c.rawNM==null).length;showSt('statusBar','Done: '+r.length+' in range / '+raw.length+' total'+(failed?' ('+failed+' issues)':''),100);setTimeout(()=>hideSt('statusBar'),4000);if(!r.length)renderNoResults(mn,mx,raw,'Scan All');else renderResults(r)}catch(e){showSt('statusBar','Error: '+e.message,0)}finally{document.getElementById('scanBtn').disabled=false;document.getElementById('scanAllBtn').disabled=false}}
 
 function getTier(p){if(p===null)return'tcc';if(p>=100)return'ts';if(p>=50)return'ta';if(p>=20)return'tbb';if(p>=0)return'tcc';return'tv'}
 function tgc(r){if(/Special Ill/i.test(r))return'tg-s';if(/Illustration Rare/i.test(r))return'tg-i';if(/Holo/i.test(r))return'tg-h';return'tg-o'}
@@ -357,9 +446,8 @@ function renderResults(results){const gr=document.getElementById('graderSelect')
 // BUDGET
 async function runBudget(){const budget=parseFloat(document.getElementById('budgetTotal').value);const mn=parseFloat(document.getElementById('budgetMin').value),mx=parseFloat(document.getElementById('budgetMax').value);const sr=document.getElementById('budgetSeries').value;const grader=document.getElementById('budgetGrader').value;if(!budget||budget<=0){alert('Enter a budget');return}if(isNaN(mn)||isNaN(mx)||mx<=0||mx<mn){alert('Enter valid min/max');return}if(!sr){alert('Select a series');return}if(RARITY_SERIES.has(sr)&&!budgetRarities.length){alert('Select at least one rarity');return}
 const sids=budgetSets.length?budgetSets:getSetsFor(sr).map(([sid])=>sid);const allCards=getCards(sids,sr,budgetRarities);if(!allCards.length){alert('No cards match');return}
-if(rateTracker.count>=50){showSt('bStatus','Waiting for rate limit...',0);while(rateTracker.count>=30){updateRL();await new Promise(r=>setTimeout(r,1000))}}
 document.getElementById('bRunBtn').disabled=true;
-try{const raw=await scanBatch(allCards,'bStatus');addSpreads(raw);
+try{const raw=await scanBatch(allCards,'bStatus',{priceMin:mn,priceMax:mx,grader});addSpreads(raw);
 const viable=raw.filter(c=>{if(c.rawNM==null||c.rawNM<mn||c.rawNM>mx)return false;let sp=null;if(grader==='cgc')sp=c.cgcPct;else if(grader==='psa')sp=c.psaPct;else sp=Math.max(c.cgcPct||0,c.psaPct||0)||null;return sp!=null&&sp>0}).map(c=>{let sp;if(grader==='cgc')sp=c.cgcPct;else if(grader==='psa')sp=c.psaPct;else sp=Math.max(c.cgcPct||0,c.psaPct||0);return{...c,bestSpread:sp}}).sort((a,b)=>b.bestSpread-a.bestSpread);
 if(!viable.length){hideSt('bStatus');const failed=raw.filter(c=>c.rawNM==null).length;document.getElementById('budgetResultArea').innerHTML='<div class="es"><h2>No Opportunities</h2><p style="font-size:8px">'+raw.length+' scanned'+(failed?', '+failed+' errors':'')+'. None with positive spread in $'+mn+'-$'+mx+'</p></div>';return}
 const alloc=new Map();let remaining=budget;for(const c of viable){if(remaining<c.rawNM)continue;const key=c.name+'|'+c.cardNumber+'|'+c.setName;if(!alloc.has(key)){alloc.set(key,{...c,qty:1,cost:c.rawNM});remaining-=c.rawNM}if(remaining<=0)break}
