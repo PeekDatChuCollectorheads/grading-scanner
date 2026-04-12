@@ -30,6 +30,9 @@ select,input[type=number]{background:var(--s2);border:1px solid var(--bdr);color
 .sh2{font-family:'Syne',sans-serif;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:1px;padding:10px 0 4px;color:var(--accent);border-bottom:1px solid var(--bdr);margin-bottom:2px}.sh2.psa{color:var(--blue)}
 .cr{display:grid;grid-template-columns:20px 38px 1fr 60px 68px 68px 48px 48px;align-items:center;padding:5px 5px;background:var(--surface);border-left:3px solid transparent;gap:3px;font-size:10px}.cr:hover{background:var(--s2)}.cr.ts{border-left-color:var(--accent)}.cr.ta{border-left-color:var(--blue)}.cr.tbb{border-left-color:var(--yel)}.cr.tcc{border-left-color:var(--dim)}.cr.tv{border-left-color:var(--red)}
 .crh{display:grid;grid-template-columns:20px 38px 1fr 60px 68px 68px 48px 48px;padding:4px 5px;font-size:7px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);font-family:'Syne',sans-serif;font-weight:600;gap:3px;border-bottom:1px solid var(--bdr)}
+.crb{display:grid;grid-template-columns:20px 38px 1fr 60px 68px 68px 48px 48px 42px;align-items:center;padding:5px 5px;background:var(--surface);border-left:3px solid transparent;gap:3px;font-size:10px}.crb:hover{background:var(--s2)}
+.crhb{display:grid;grid-template-columns:20px 38px 1fr 60px 68px 68px 48px 48px 42px;padding:4px 5px;font-size:7px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);font-family:'Syne',sans-serif;font-weight:600;gap:3px;border-bottom:1px solid var(--bdr)}
+.cbq,.cbq-h{text-align:right}
 .rk{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--dim)}.ci{width:32px;height:44px;border-radius:2px;object-fit:cover;background:var(--s2)}
 .cn2{font-family:'Syne',sans-serif;font-weight:700;font-size:9px;line-height:1.2}.cm2{font-size:7px;color:var(--dim)}.pr2{font-weight:700;font-size:9px}
 .sp{color:var(--accent);font-weight:700}.sn{color:var(--red);font-weight:700}.sw{color:var(--yel);font-weight:700}
@@ -72,7 +75,7 @@ select,input[type=number]{background:var(--s2);border:1px solid var(--bdr);color
 .brc{margin:2px 0;padding:5px 7px;background:var(--surface);border:1px solid var(--bdr);border-radius:4px;display:flex;justify-content:space-between;align-items:center;font-size:8px}.brc-n{font-family:'Syne',sans-serif;font-weight:700;font-size:9px}.brc-m{font-size:7px;color:var(--dim)}.brc-q{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--accent)}.brc-c{font-size:7px;color:var(--dim)}
 .bsum{margin:8px 10px;padding:8px;background:var(--surface);border:1px solid var(--bdr);border-radius:5px}.bsr{display:flex;justify-content:space-between;padding:2px 0;font-size:10px}.bsl{color:var(--dim)}.bsv{font-weight:700}
 @media(min-width:640px){.cg2{grid-template-columns:repeat(3,1fr)}.smb{grid-template-columns:repeat(4,1fr)}.fg{grid-template-columns:1fr 1fr 1fr}}
-@media(max-width:639px){.cr,.crh{grid-template-columns:18px 1fr 52px 52px 42px}.cr .cic,.crh .ci-h,.cr .ccf,.crh .ccf-h,.cr .csl,.crh .csl-h{display:none}}
+@media(max-width:639px){.cr,.crh{grid-template-columns:18px 1fr 52px 52px 42px}.cr .cic,.crh .ci-h,.cr .ccf,.crh .ccf-h,.cr .csl,.crh .csl-h{display:none}.crb,.crhb{grid-template-columns:18px 1fr 52px 52px 42px 34px}.crb .cic,.crhb .ci-h,.crb .ccf,.crhb .ccf-h,.crb .csl,.crhb .csl-h{display:none}}
 </style>
 </head>
 <body>
@@ -106,6 +109,7 @@ select,input[type=number]{background:var(--s2);border:1px solid var(--bdr);color
 <div class="bf">
 <div class="cg"><label>Total Budget ($)</label><input type="number" id="budgetTotal" placeholder="e.g. 1000" step="1" min="1"></div>
 <div class="cg2"><div class="cg"><label>Min $ / Card</label><input type="number" id="budgetMin" placeholder="Min" step="1" min="0"></div><div class="cg"><label>Max $ / Card</label><input type="number" id="budgetMax" placeholder="Max" step="1" min="0"></div></div>
+<div class="cg"><label>Total Cards Target (optional)</label><input type="number" id="budgetTargetCards" placeholder="Any quantity" step="1" min="1"></div>
 <div class="cg2" style="margin-top:4px"><div class="cg"><label>Series</label><select id="budgetSeries"><option value="">Select</option></select></div><div class="cg"><label>Grader</label><select id="budgetGrader"><option value="cgc">CGC</option><option value="psa">PSA</option><option value="both">Both</option></select></div></div>
 <div class="cg" style="margin-top:4px"><label>Sets (optional, max 5)</label><div class="ms" id="bSetMs"><button class="ms-b" id="bSetBtn" type="button">All in series</button><div class="ms-p" id="bSetPanel"></div></div></div>
 <div class="cg" id="bRarGroup" style="margin-top:4px"><label>Rarity Tier</label><div class="ms" id="bRarMs"><button class="ms-b" id="bRarBtn" type="button">Select rarity</button><div class="ms-p" id="bRarPanel"></div></div></div>
@@ -349,19 +353,135 @@ function sumH(s,tn,tp,lbl){const pre=lbl?'<div style="font-family:Syne;font-size
 function renderResults(results){const gr=document.getElementById('graderSelect').value;let html='';if(gr==='cgc'||gr==='both'){const sorted=sortS(results,'cgc'),s=calcSt(results,'cgc');document.getElementById('summaryArea').innerHTML=sumH(s,s.top?s.top.name:'--',s.top?'+'+s.top.cgcPct.toFixed(1)+'%':'',gr==='both'?'CGC 10':null);html+='<div class="res">';if(gr==='both')html+='<div class="sh2">CGC 10</div>';html+=hdr('CGC 10')+'<div class="cgr">';sorted.forEach((r,i)=>html+=row(r,i,'cgc'));html+='</div>';if(gr==='both'){const ps=sortS(results,'psa'),pst=calcSt(results,'psa');document.getElementById('summaryArea').innerHTML+=sumH(pst,pst.top?pst.top.name:'--',pst.top?'+'+pst.top.psaPct.toFixed(1)+'%':'','PSA 10');html+='<div class="sh2 psa" style="margin-top:14px">PSA 10</div>'+hdr('PSA 10')+'<div class="cgr">';ps.forEach((r,i)=>html+=row(r,i,'psa'));html+='</div>'}html+='</div>'}else{const sorted=sortS(results,'psa'),s=calcSt(results,'psa');document.getElementById('summaryArea').innerHTML=sumH(s,s.top?s.top.name:'--',s.top?'+'+s.top.psaPct.toFixed(1)+'%':'',null);html+='<div class="res">'+hdr('PSA 10')+'<div class="cgr">';sorted.forEach((r,i)=>html+=row(r,i,'psa'));html+='</div></div>'}document.getElementById('resultsArea').innerHTML=html;document.getElementById('footerArea').innerHTML='<div class="fn"><h3>Analysis</h3><div class="fg"><div class="fs"><h4>Tiers</h4><ul><li><span style="color:var(--accent)">S</span> 100%+ <span style="color:var(--blue)">A</span> 50-99% <span style="color:var(--yel)">B</span> 20-49%</li><li><span style="color:var(--dim)">C</span> 0-19% <span style="color:var(--red)">Avoid</span> negative</li></ul></div><div class="fs"><h4>Data</h4><ul><li>Graded 10 = exact cardId lookup with eBay 90d / 30d smart&gt;median&gt;avg</li><li>Raw = TCGPlayer market / Costs not included</li></ul></div></div></div>'}
 
 // BUDGET
-async function runBudget(){const budget=parseFloat(document.getElementById('budgetTotal').value);const mn=parseFloat(document.getElementById('budgetMin').value),mx=parseFloat(document.getElementById('budgetMax').value);const sr=document.getElementById('budgetSeries').value;const grader=document.getElementById('budgetGrader').value;if(!budget||budget<=0){alert('Enter a budget');return}if(isNaN(mn)||isNaN(mx)||mx<=0||mx<mn){alert('Enter valid min/max');return}if(!sr){alert('Select a series');return}if(RARITY_SERIES.has(sr)&&!budgetRarities.length){alert('Select at least one rarity');return}
-const sids=budgetSets.length?budgetSets:getSetsFor(sr).map(([sid])=>sid);const allCards=getCards(sids,sr,budgetRarities);if(!allCards.length){alert('No cards match');return}
-if(rateTracker.count>=50){showSt('bStatus','Waiting for rate limit...',0);while(rateTracker.count>=30){updateRL();await new Promise(r=>setTimeout(r,1000))}}
-document.getElementById('bRunBtn').disabled=true;
-try{const raw=await scanBatch(allCards,'bStatus');addSpreads(raw);
-const viable=raw.filter(c=>{if(c.rawNM==null||c.rawNM<mn||c.rawNM>mx)return false;let sp=null;if(grader==='cgc')sp=c.cgcPct;else if(grader==='psa')sp=c.psaPct;else sp=Math.max(c.cgcPct||0,c.psaPct||0)||null;return sp!=null&&sp>0}).map(c=>{let sp;if(grader==='cgc')sp=c.cgcPct;else if(grader==='psa')sp=c.psaPct;else sp=Math.max(c.cgcPct||0,c.psaPct||0);return{...c,bestSpread:sp}}).sort((a,b)=>b.bestSpread-a.bestSpread);
-if(!viable.length){hideSt('bStatus');const failed=raw.filter(c=>c.rawNM==null).length;document.getElementById('budgetResultArea').innerHTML='<div class="es"><h2>No Opportunities</h2><p style="font-size:8px">'+raw.length+' scanned'+(failed?', '+failed+' errors':'')+'. None with positive spread in $'+mn+'-$'+mx+'</p></div>';return}
-const alloc=new Map();let remaining=budget;for(const c of viable){if(remaining<c.rawNM)continue;const key=c.name+'|'+c.cardNumber+'|'+c.setName;if(!alloc.has(key)){alloc.set(key,{...c,qty:1,cost:c.rawNM});remaining-=c.rawNM}if(remaining<=0)break}
-let passes=0;while(remaining>mn&&passes<50){let bought=false;for(const c of viable){if(c.rawNM>remaining)continue;const key=c.name+'|'+c.cardNumber+'|'+c.setName;const ex=alloc.get(key);if(ex){ex.qty++;ex.cost+=c.rawNM;remaining-=c.rawNM;bought=true}else{alloc.set(key,{...c,qty:1,cost:c.rawNM});remaining-=c.rawNM;bought=true}if(remaining<mn)break}if(!bought)break;passes++}
-const list=[...alloc.values()].sort((a,b)=>b.bestSpread-a.bestSpread);const totalSpent=list.reduce((s,c)=>s+c.cost,0);const totalCards=list.reduce((s,c)=>s+c.qty,0);
-showSt('bStatus','Done',100);setTimeout(()=>hideSt('bStatus'),1500);
-let h='<div class="bsum"><div class="bsr"><span class="bsl">Budget</span><span class="bsv">$'+budget.toFixed(0)+'</span></div><div class="bsr"><span class="bsl">Allocated</span><span class="bsv" style="color:var(--accent)">$'+totalSpent.toFixed(0)+'</span></div><div class="bsr"><span class="bsl">Cards</span><span class="bsv">'+totalCards+'</span></div><div class="bsr"><span class="bsl">Remaining</span><span class="bsv">$'+(budget-totalSpent).toFixed(0)+'</span></div><div class="bsr"><span class="bsl">Utilization</span><span class="bsv">'+(totalSpent/budget*100).toFixed(0)+'%</span></div></div><div style="margin:6px 10px">';
-list.forEach(c=>{h+='<div class="brc"><div><div class="brc-n">'+c.name+'</div><div class="brc-m">'+c.setName+' / $'+c.rawNM.toFixed(2)+' / +'+c.bestSpread.toFixed(0)+'%</div></div><div style="text-align:right"><div class="brc-q">x'+c.qty+'</div><div class="brc-c">$'+c.cost.toFixed(0)+'</div></div></div>'});
-h+='</div>';document.getElementById('budgetResultArea').innerHTML=h;
-}catch(e){hideSt('bStatus');alert('Error: '+e.message)}finally{document.getElementById('bRunBtn').disabled=false}}
+function budgetHdr(gl){return'<div class="crhb"><div>#</div><div class="ci-h"></div><div>Card</div><div>Raw</div><div>'+gl+'</div><div>Spread</div><div class="ccf-h">Cf</div><div class="csl-h">Sls</div><div class="cbq-h">Qty</div></div>'}
+function budgetRow(r,i,gk){
+  const g=gk==='psa'?r.psa10:r.cgc10,pct=gk==='psa'?r.psaPct:r.cgcPct,spr=gk==='psa'?r.psaSpread:r.cgcSpread,cf=gk==='psa'?r.psaConf:r.cgcConf,sl=gk==='psa'?r.psaSales:r.cgcSales;
+  const t=getTier(pct),ss=pct!==null?(pct>0?'+':'')+pct.toFixed(1)+'%':'--',sc=pct===null?'':pct>=50?'sp':pct>=0?'sw':'sn',sd=spr!==null?'$'+Math.abs(spr).toFixed(0):'';
+  return'<div class="crb '+t+'"><div class="rk">'+(i+1)+'</div><div class="cic">'+(r.image?'<img class="ci" src="'+r.image+'" loading="lazy">':'<div class="ci"></div>')+'</div><div><div class="cn2">'+r.name+'</div><div class="cm2">'+r.cardNumber+' <span class="tg '+tgc(r.rarity)+'">'+shr(r.rarity)+'</span> '+r.setName+' / spend $'+r.cost.toFixed(0)+'</div></div><div class="pr2">'+(r.rawNM?'$'+r.rawNM.toFixed(2):'--')+'</div><div class="pr2">'+(g?'$'+g.toFixed(2):'--')+'</div><div><span class="'+sc+'">'+ss+'</span>'+(sd?'<br><span style="font-size:6px;color:var(--dim)">'+sd+'</span>':'')+'</div><div class="ccf">'+(cf||'--')+'</div><div class="csl">'+(sl||'0')+'</div><div class="cbq"><span class="sp">x'+r.qty+'</span></div></div>'
+}
+function budgetSummaryBox(plan,label){
+  const util=plan.budget>0?(plan.totalSpent/plan.budget*100):0;
+  const targetLabel=plan.targetRequested?(plan.totalCards+' / '+plan.targetRequested):(''+plan.totalCards);
+  return '<div style="font-family:Syne;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);padding:6px 10px 0">'+label+'</div>'
+    +'<div class="bsum"><div class="bsr"><span class="bsl">Budget</span><span class="bsv">$'+plan.budget.toFixed(0)+'</span></div>'
+    +'<div class="bsr"><span class="bsl">Allocated</span><span class="bsv" style="color:var(--accent)">$'+plan.totalSpent.toFixed(0)+'</span></div>'
+    +'<div class="bsr"><span class="bsl">Cards</span><span class="bsv">'+targetLabel+'</span></div>'
+    +'<div class="bsr"><span class="bsl">Remaining</span><span class="bsv">$'+(plan.budget-plan.totalSpent).toFixed(0)+'</span></div>'
+    +'<div class="bsr"><span class="bsl">Utilization</span><span class="bsv">'+util.toFixed(0)+'%</span></div></div>';
+}
+function buildBudgetPlan(viable,budget,targetRequested){
+  const sorted=[...viable].sort((a,b)=>{if((b.bestSpread??0)!==(a.bestSpread??0))return (b.bestSpread??0)-(a.bestSpread??0);return (a.rawNM??1e9)-(b.rawNM??1e9)});
+  const alloc=new Map();
+  let remaining=budget;
+  const addOne=(card)=>{
+    const key=card.name+'|'+card.cardNumber+'|'+card.setName;
+    const ex=alloc.get(key);
+    if(ex){ex.qty++;ex.cost+=card.rawNM}
+    else alloc.set(key,{...card,qty:1,cost:card.rawNM});
+    remaining-=card.rawNM;
+  };
+  if(!sorted.length)return{budget,totalSpent:0,totalCards:0,list:[],targetRequested:targetRequested||null,targetAchievedTarget:0};
+  const cheapest=Math.min(...sorted.map(c=>c.rawNM).filter(v=>Number.isFinite(v)&&v>0));
+  const maxAffordable=Number.isFinite(cheapest)&&cheapest>0?Math.floor(budget/cheapest):0;
+  const desired=targetRequested?Math.min(targetRequested,maxAffordable):null;
+
+  if(desired&&desired>0){
+    for(let slot=0;slot<desired;slot++){
+      const remainingSlots=desired-slot-1;
+      let pick=null;
+      for(const card of sorted){
+        if(card.rawNM>remaining)continue;
+        if(remaining-card.rawNM >= cheapest*remainingSlots){pick=card;break}
+      }
+      if(!pick)break;
+      addOne(pick);
+    }
+  }else{
+    let guard=0;
+    while(guard<5000){
+      let pick=null;
+      for(const card of sorted){if(card.rawNM<=remaining){pick=card;break}}
+      if(!pick)break;
+      addOne(pick);
+      guard++;
+    }
+  }
+
+  const list=[...alloc.values()].sort((a,b)=>{const bs=(b.bestSpread??0)-(a.bestSpread??0);if(bs!==0)return bs;return b.qty-a.qty});
+  const totalSpent=list.reduce((s,c)=>s+c.cost,0);
+  const totalCards=list.reduce((s,c)=>s+c.qty,0);
+  return{budget,totalSpent,totalCards,list,targetRequested:targetRequested||null,targetAchievedTarget:desired||0};
+}
+function renderBudgetPlan(plan,gk,label){
+  if(!plan.list.length)return'<div class="es"><h2>No Opportunities</h2><p style="font-size:8px">No positive '+label+' spread opportunities matched the current filters.</p></div>';
+  const summary=budgetSummaryBox(plan,label);
+  let html=summary+'<div class="res">';
+  html+='<div class="sh2'+(gk==='psa'?' psa':'')+'">'+label+'</div>';
+  html+=budgetHdr(gk==='psa'?'PSA 10':'CGC 10')+'<div class="cgr">';
+  plan.list.forEach((r,i)=>html+=budgetRow(r,i,gk));
+  html+='</div></div>';
+  return html;
+}
+async function runBudget(){
+  const budget=parseFloat(document.getElementById('budgetTotal').value);
+  const mn=parseFloat(document.getElementById('budgetMin').value),mx=parseFloat(document.getElementById('budgetMax').value);
+  const sr=document.getElementById('budgetSeries').value;
+  const grader=document.getElementById('budgetGrader').value;
+  const targetRaw=document.getElementById('budgetTargetCards').value.trim();
+  const targetCards=targetRaw?parseInt(targetRaw,10):null;
+
+  if(!budget||budget<=0){alert('Enter a budget');return}
+  if(isNaN(mn)||isNaN(mx)||mx<=0||mx<mn){alert('Enter valid min/max');return}
+  if(targetRaw && (!Number.isInteger(targetCards) || targetCards<=0)){alert('Enter a valid total card target');return}
+  if(!sr){alert('Select a series');return}
+  if(RARITY_SERIES.has(sr)&&!budgetRarities.length){alert('Select at least one rarity');return}
+
+  const sids=budgetSets.length?budgetSets:getSetsFor(sr).map(([sid])=>sid);
+  const allCards=getCards(sids,sr,budgetRarities);
+  if(!allCards.length){alert('No cards match');return}
+
+  document.getElementById('bRunBtn').disabled=true;
+  document.getElementById('budgetResultArea').innerHTML='';
+  try{
+    const raw=await scanBatch(allCards,'bStatus',{min:mn,max:mx});
+    addSpreads(raw);
+
+    const makeViable=(gk)=>{
+      return raw.filter(c=>{
+        if(c.rawNM==null||c.rawNM<mn||c.rawNM>mx)return false;
+        const pct=gk==='psa'?c.psaPct:c.cgcPct;
+        const graded=gk==='psa'?c.psa10:c.cgc10;
+        return graded!=null && pct!=null && pct>0;
+      }).map(c=>({...c,bestSpread:gk==='psa'?c.psaPct:c.cgcPct}));
+    };
+
+    const failed=raw.filter(c=>c.rawNM==null).length;
+    if(grader==='both'){
+      const cgcPlan=buildBudgetPlan(makeViable('cgc'),budget,targetCards);
+      const psaPlan=buildBudgetPlan(makeViable('psa'),budget,targetCards);
+      if(!cgcPlan.list.length && !psaPlan.list.length){
+        hideSt('bStatus');
+        document.getElementById('budgetResultArea').innerHTML='<div class="es"><h2>No Opportunities</h2><p style="font-size:8px">'+raw.length+' scanned'+(failed?', '+failed+' errors':'')+'. None with positive spread in $'+mn+'-$'+mx+'</p></div>';
+        return;
+      }
+      showSt('bStatus','Done',100);setTimeout(()=>hideSt('bStatus'),1500);
+      document.getElementById('budgetResultArea').innerHTML=renderBudgetPlan(cgcPlan,'cgc','CGC 10')+renderBudgetPlan(psaPlan,'psa','PSA 10');
+      return;
+    }
+
+    const plan=buildBudgetPlan(makeViable(grader),budget,targetCards);
+    if(!plan.list.length){
+      hideSt('bStatus');
+      document.getElementById('budgetResultArea').innerHTML='<div class="es"><h2>No Opportunities</h2><p style="font-size:8px">'+raw.length+' scanned'+(failed?', '+failed+' errors':'')+'. None with positive spread in $'+mn+'-$'+mx+'</p></div>';
+      return;
+    }
+    showSt('bStatus','Done',100);setTimeout(()=>hideSt('bStatus'),1500);
+    document.getElementById('budgetResultArea').innerHTML=renderBudgetPlan(plan,grader,grader==='psa'?'PSA 10':'CGC 10');
+  }catch(e){
+    hideSt('bStatus');
+    alert('Error: '+e.message)
+  }finally{
+    document.getElementById('bRunBtn').disabled=false
+  }
+}
 </script></body></html>
