@@ -74,6 +74,9 @@ select,input[type=number]{background:var(--s2);border:1px solid var(--bdr);color
 .bf{margin:8px 10px}.bf .cg{margin-bottom:6px}
 .brc{margin:2px 0;padding:5px 7px;background:var(--surface);border:1px solid var(--bdr);border-radius:4px;display:flex;justify-content:space-between;align-items:center;font-size:8px}.brc-n{font-family:'Syne',sans-serif;font-weight:700;font-size:9px}.brc-m{font-size:7px;color:var(--dim)}.brc-q{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--accent)}.brc-c{font-size:7px;color:var(--dim)}
 .bsum{margin:8px 10px;padding:8px;background:var(--surface);border:1px solid var(--bdr);border-radius:5px}.bsr{display:flex;justify-content:space-between;padding:2px 0;font-size:10px}.bsl{color:var(--dim)}.bsv{font-weight:700}
+
+/* Live Stream Analytics */
+.lsa-bar{padding:8px 10px;border-bottom:1px solid var(--bdr);background:var(--surface);display:grid;grid-template-columns:1fr 1fr;gap:6px}.lsa-grid{padding:10px}.lsa-grid .cg{margin-bottom:6px}.lsa-note{margin:8px 10px;padding:8px 10px;background:var(--surface);border:1px solid var(--bdr);border-radius:5px;font-size:9px;color:var(--dim);line-height:1.45}.lsa-lock{margin:12px 10px;padding:18px;background:var(--surface);border:1px solid var(--bdr);border-radius:6px;text-align:center}.lsa-lock h2{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:4px}.lsa-list{margin:8px 10px;background:var(--surface);border:1px solid var(--bdr);border-radius:6px;overflow:hidden}.lsa-row,.lsa-head{display:grid;grid-template-columns:84px 1fr 64px 74px 74px 64px;gap:6px;align-items:center;padding:7px 8px}.lsa-head{font-family:'Syne',sans-serif;font-size:7px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);border-bottom:1px solid var(--bdr)}.lsa-row{font-size:9px;border-bottom:1px solid var(--bdr)}.lsa-row:last-child{border-bottom:none}.lsa-name{font-family:'Syne',sans-serif;font-size:9px;font-weight:700}.lsa-sub{font-size:7px;color:var(--dim)}.lsa-chip{display:inline-block;padding:2px 5px;border-radius:3px;font-family:'Syne',sans-serif;font-size:7px;font-weight:700;text-transform:uppercase}.lsa-chip.ok{background:var(--adim);color:var(--accent)}.lsa-chip.warn{background:var(--ydim);color:var(--yel)}.lsa-chip.dim{background:rgba(136,136,160,.15);color:var(--dim)}.lsa-mini{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 10px}.lsa-mini .smc{min-height:64px}.lsa-table{margin:8px 10px;background:var(--surface);border:1px solid var(--bdr);border-radius:6px;overflow:hidden}.lsa-table .row,.lsa-table .head{display:grid;gap:6px;align-items:center;padding:7px 8px}.lsa-table .head{font-family:'Syne',sans-serif;font-size:7px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);border-bottom:1px solid var(--bdr)}.lsa-table .row{font-size:9px;border-bottom:1px solid var(--bdr)}.lsa-table .row:last-child{border-bottom:none}.lsa-actions{display:flex;gap:6px;margin-top:8px}.lsa-card{margin:8px 10px;background:var(--surface);border:1px solid var(--bdr);border-radius:6px;padding:10px}.lsa-card h3{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.lsa-pill{padding:2px 6px;border-radius:10px;background:var(--s2);border:1px solid var(--bdr);font-size:8px}.lsa-item{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--bdr)}.lsa-item:last-child{border-bottom:none}.lsa-strong{font-weight:700}.lsa-right{text-align:right}.lsa-search-wrap{margin-top:8px}.lsa-search-results{max-height:180px;overflow:auto;background:var(--surface);border:1px solid var(--bdr);border-radius:5px;margin-top:4px}.lsa-search-row{padding:7px 8px;border-bottom:1px solid var(--bdr);cursor:pointer}.lsa-search-row:last-child{border-bottom:none}.lsa-search-row:hover{background:var(--s2)}.lsa-inline{display:flex;gap:6px;align-items:center}.lsa-inline>*{flex:1}.lsa-danger{background:var(--red)!important;color:#fff!important}.lsa-tabs{display:flex;border-bottom:1px solid var(--bdr);background:var(--surface);overflow-x:auto}.lsa-tabs .sni{min-width:84px}.lsa-hidden{display:none!important}@media(max-width:639px){.lsa-head,.lsa-row{grid-template-columns:74px 1fr 56px 62px 62px 56px}.lsa-inline{flex-direction:column;align-items:stretch}.lsa-mini{grid-template-columns:1fr 1fr}.tb{overflow-x:auto}.tbi{min-width:62px}}
 @media(min-width:640px){.cg2{grid-template-columns:repeat(3,1fr)}.smb{grid-template-columns:repeat(4,1fr)}.fg{grid-template-columns:1fr 1fr 1fr}}
 @media(max-width:639px){.cr,.crh{grid-template-columns:18px 1fr 52px 52px 42px}.cr .cic,.crh .ci-h,.cr .ccf,.crh .ccf-h,.cr .csl,.crh .csl-h{display:none}.crb,.crhb{grid-template-columns:18px 1fr 52px 52px 42px 34px}.crb .cic,.crhb .ci-h,.crb .ccf,.crhb .ccf-h,.crb .csl,.crhb .csl-h{display:none}}
 </style>
@@ -118,6 +121,30 @@ select,input[type=number]{background:var(--s2);border:1px solid var(--bdr);color
 <div class="stb2" id="bStatus" style="display:none"><span id="bStatusText"></span><div class="pgb"><div class="pgf" id="bProgress"></div></div></div>
 <div id="budgetResultArea"></div>
 </div>
+
+<!-- LIVE STREAM ANALYTICS -->
+<div class="tc" id="tab-streams">
+<div class="ph"><h1>Live Stream Analytics</h1><div class="st">Enterprise // Market Realization</div></div>
+<div class="lsa-bar">
+  <div class="cg"><label>Plan</label><select id="lsaTierSelect" onchange="lsaSetTier(this.value)"><option>Free</option><option>Entry</option><option>Advanced</option><option selected>Enterprise</option></select></div>
+  <div class="cg"><label>Role</label><select id="lsaRoleSelect" onchange="lsaSetRole(this.value)"><option selected>Admin</option><option>Streamer</option></select></div>
+</div>
+<div id="lsaLocked" class="lsa-lock lsa-hidden"><h2>Enterprise Feature</h2><p style="font-size:9px;color:var(--dim)">Live Stream Analytics is available on Enterprise only.</p></div>
+<div id="lsaContent">
+  <div class="lsa-tabs">
+    <div class="sni active" onclick="lsaShowView('history',this)">History</div>
+    <div class="sni" onclick="lsaShowView('builder',this)">Builder</div>
+    <div class="sni" onclick="lsaShowView('complete',this)">Complete</div>
+    <div class="sni" onclick="lsaShowView('dashboard',this)">Dashboard</div>
+    <div class="sni" id="lsaManageTab" onclick="lsaShowView('manage',this)">Manage</div>
+  </div>
+  <div class="sv active" id="lsa-history"></div>
+  <div class="sv" id="lsa-builder"></div>
+  <div class="sv" id="lsa-complete"></div>
+  <div class="sv" id="lsa-dashboard"></div>
+  <div class="sv" id="lsa-manage"></div>
+</div>
+</div>
 <!-- PERFORMANCE -->
 <div class="tc" id="tab-dashboard">
 <div class="ph"><h1>Overall Performance</h1><div class="st">Collectibles Intelligence // Metrics</div></div>
@@ -148,6 +175,7 @@ select,input[type=number]{background:var(--s2);border:1px solid var(--bdr);color
 <div class="tbi active" data-tab="tab-create"><span class="tbi-i">📋</span><span class="tbi-l">Create</span></div>
 <div class="tbi" data-tab="tab-submissions"><span class="tbi-i">📦</span><span class="tbi-l">Submissions</span></div>
 <div class="tbi" data-tab="tab-budget"><span class="tbi-i">💰</span><span class="tbi-l">Budget</span></div>
+<div class="tbi" data-tab="tab-streams"><span class="tbi-i">🎥</span><span class="tbi-l">Streams</span></div>
 <div class="tbi" data-tab="tab-dashboard"><span class="tbi-i">📊</span><span class="tbi-l">Performance</span></div>
 <div class="tbi" data-tab="tab-user"><span class="tbi-i">👤</span><span class="tbi-l">User</span></div>
 </nav>
@@ -484,4 +512,175 @@ async function runBudget(){
     document.getElementById('bRunBtn').disabled=false
   }
 }
+
+const LSA_KEY='lsa_state_v1';
+let lsaState=null;
+let lsaBuilderState={platform:'eBay Live',showDate:new Date().toISOString().slice(0,10),feePct:12,streamerId:'',items:[],searchResults:[],pendingCard:null};
+let lsaCompletionPreview=null;
+function lsaDefaults(){return{tier:'Enterprise',role:'Admin',currentStreamerId:'streamer_1',streamers:[{id:'streamer_1',name:'Main Streamer',active:true,defaults:{'eBay Live':12,'Fanatics Live':10,'Whatnot':11,'Other':10}}],shows:[]}}
+function lsaLoad(){try{lsaState=JSON.parse(localStorage.getItem(LSA_KEY)||'null')||lsaDefaults()}catch{lsaState=lsaDefaults()}if(!lsaState.streamers?.length)lsaState.streamers=lsaDefaults().streamers;if(!lsaState.currentStreamerId)lsaState.currentStreamerId=lsaState.streamers[0].id;lsaBuilderState.streamerId=lsaState.currentStreamerId;lsaApplyUserPlan();lsaRenderAll()}
+function lsaSave(){localStorage.setItem(LSA_KEY,JSON.stringify(lsaState));lsaApplyUserPlan()}
+function lsaApplyUserPlan(){const planEl=document.querySelector('.tb-a')?.parentElement?.parentElement?.nextElementSibling;const tierBadge=document.querySelector('#tab-user .tb-f, #tab-user .tb-e, #tab-user .tb-a, #tab-user .tb-n');if(tierBadge){tierBadge.className='tbb2 '+(lsaState.tier==='Enterprise'?'tb-n':lsaState.tier==='Advanced'?'tb-a':lsaState.tier==='Entry'?'tb-e':'tb-f');tierBadge.textContent=lsaState.tier}const fields=document.querySelectorAll('#tab-user .ufv');if(fields[0])fields[0].textContent=lsaState.role+' User';if(fields[1])fields[1].textContent='liveanalytics@local';}
+function lsaSetTier(v){lsaState.tier=v;lsaSave();lsaRenderAll()}
+function lsaSetRole(v){lsaState.role=v;lsaSave();lsaRenderAll()}
+function lsaShowView(view,el){document.querySelectorAll('#tab-streams .sni').forEach(n=>n.classList.remove('active'));document.querySelectorAll('#tab-streams .sv').forEach(v=>v.classList.remove('active'));if(el)el.classList.add('active');document.getElementById('lsa-'+view).classList.add('active')}
+function lsaActiveStreamers(){return (lsaState.streamers||[]).filter(s=>s.active!==false)}
+function lsaVisibleShows(){const all=lsaState.shows||[];if(lsaState.role==='Admin')return all;return all.filter(s=>s.streamerId===lsaState.currentStreamerId)}
+function lsaCurrentStreamer(){return lsaState.streamers.find(s=>s.id===lsaState.currentStreamerId)||lsaActiveStreamers()[0]||null}
+function lsaPlatformDefault(streamerId,platform){const s=lsaState.streamers.find(x=>x.id===streamerId)||lsaCurrentStreamer();return Number(s?.defaults?.[platform]??10)}
+function lsaRenderAll(){document.getElementById('lsaTierSelect').value=lsaState.tier;document.getElementById('lsaRoleSelect').value=lsaState.role;const locked=lsaState.tier!=='Enterprise';document.getElementById('lsaLocked').classList.toggle('lsa-hidden',!locked);document.getElementById('lsaContent').classList.toggle('lsa-hidden',locked);document.getElementById('lsaManageTab').classList.toggle('lsa-hidden',lsaState.role!=='Admin');if(locked)return;lsaRenderHistory();lsaRenderBuilder();lsaRenderComplete();lsaRenderDashboard();lsaRenderManage()}
+function lsaMetricSummary(shows){let gross=0,net=0,listed=0,sold=0,rrSum=0,rrCnt=0;shows.forEach(show=>{listed+=show.totalCardsListed||show.items?.length||0;sold+=show.totalCardsSold||show.items?.filter(i=>i.soldStatus).length||0;gross+=show.totalGrossRevenue||0;net+=show.totalFeeAdjustedNet||0;(show.items||[]).filter(i=>i.soldStatus&&Number.isFinite(i.realizationRate)).forEach(i=>{rrSum+=i.realizationRate;rrCnt++})});return{shows:shows.length,gross,net,listed,sold,sellThrough:listed?100*sold/listed:0,avgRealization:rrCnt?rrSum/rrCnt:0}}
+function money(v){return '$'+Number(v||0).toFixed(2).replace(/\.00$/,'')}
+function pct(v){return Number(v||0).toFixed(1)+'%'}
+function lsaScopeText(show){const s=lsaState.streamers.find(x=>x.id===show.streamerId);return (s?s.name:'Unknown')+' / '+show.platform}
+function lsaRenderHistory(){
+  const shows=[...lsaVisibleShows()].sort((a,b)=>String(b.showDate).localeCompare(String(a.showDate)));
+  const host=document.getElementById('lsa-history');
+  const summary=lsaMetricSummary(shows);
+  let html=`<div class="lsa-mini">
+    <div class="smc"><div class="l">Total Shows</div><div class="v">${summary.shows}</div><div class="d">Visible to current role</div></div>
+    <div class="smc"><div class="l">Avg Realization</div><div class="v">${pct(summary.avgRealization)}</div><div class="d">Fee-adjusted market realization</div></div>
+    <div class="smc"><div class="l">Gross Revenue</div><div class="v">${money(summary.gross)}</div><div class="d">Completed shows</div></div>
+    <div class="smc"><div class="l">Sell-Through</div><div class="v">${pct(summary.sellThrough)}</div><div class="d">Cards sold / listed</div></div>
+  </div>`;
+  if(!shows.length){host.innerHTML=html+`<div class="es"><h2>No Shows Yet</h2><p style="font-size:8px">Create a stream from the Builder tab.</p></div>`;return}
+  html+=`<div class="lsa-table"><div class="head" style="grid-template-columns:68px 1fr 56px 74px 74px 74px 64px"><div>Date</div><div>Streamer / Platform</div><div>Listed</div><div>Sell-Through</div><div>Gross</div><div>Net</div><div>Status</div></div>`;
+  shows.forEach(show=>{
+    const streamerName=(lsaState.streamers.find(s=>s.id===show.streamerId)?.name)||'Unknown';
+    const itemRows=(show.items||[]).map(it=>`<div class="lsa-row"><div>${it.itemIdentifier}</div><div><div class="lsa-name">${it.cardName}</div><div class="lsa-sub">${it.setName} / ${it.cardNumber}</div></div><div>${it.conditionOrGrade}</div><div>${money(it.marketValueSnapshot)}</div><div>${it.soldStatus?money(it.feeAdjustedNet):'<span class="lsa-chip dim">Unsold</span>'}</div><div>${it.soldStatus?pct(it.realizationRate):'--'}</div></div>`).join('');
+    html+=`<div class="row" style="grid-template-columns:68px 1fr 56px 74px 74px 74px 64px;cursor:pointer" onclick="lsaToggleShowDetail('${show.id}')"><div>${show.showDate}</div><div><div class="lsa-name">${streamerName}</div><div class="lsa-sub">${show.platform}</div></div><div>${show.totalCardsListed||show.items.length}</div><div>${pct(show.sellThroughRate||0)}</div><div>${money(show.totalGrossRevenue||0)}</div><div>${money(show.totalFeeAdjustedNet||0)}</div><div><span class="lsa-chip ${show.status==='Completed'?'ok':show.status==='Active'?'warn':'dim'}">${show.status}</span></div></div><div id="lsa-detail-${show.id}" class="lsa-hidden"><div class="lsa-list"><div class="lsa-head"><div>Item ID</div><div>Card</div><div>Grade</div><div>Snapshot</div><div>Net</div><div>Realize</div></div>${itemRows}</div></div>`;
+  });
+  html+='</div>';
+  host.innerHTML=html;
+}
+function lsaToggleShowDetail(id){const el=document.getElementById('lsa-detail-'+id);if(el)el.classList.toggle('lsa-hidden')}
+function lsaRenderBuilder(){
+  const host=document.getElementById('lsa-builder');
+  const streamers=lsaActiveStreamers();
+  if(!streamers.length){host.innerHTML='<div class="es"><h2>No Active Streamers</h2><p style="font-size:8px">Create a streamer record first.</p></div>';return}
+  if(!streamers.find(s=>s.id===lsaBuilderState.streamerId))lsaBuilderState.streamerId=streamers[0].id;
+  const visibleStreamers=lsaState.role==='Admin'?streamers:streamers.filter(s=>s.id===lsaState.currentStreamerId);
+  if(lsaState.role!=='Admin')lsaBuilderState.streamerId=lsaState.currentStreamerId;
+  if(!Number.isFinite(lsaBuilderState.feePct)||lsaBuilderState.feePct===null)lsaBuilderState.feePct=lsaPlatformDefault(lsaBuilderState.streamerId,lsaBuilderState.platform);
+  const streamerOpts=visibleStreamers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  const html=`<div class="lsa-note">This front-end MVP stores show records in your browser for now. Market Value Snapshot is locked when a card is added to the show.</div>
+  <div class="lsa-grid"><div class="cg2">
+    <div class="cg"><label>Streamer</label><select id="lsaBuilderStreamer" ${lsaState.role==='Admin'?'':'disabled'} onchange="lsaBuilderSetStreamer(this.value)">${streamerOpts}</select></div>
+    <div class="cg"><label>Platform</label><select id="lsaBuilderPlatform" onchange="lsaBuilderSetPlatform(this.value)"><option ${lsaBuilderState.platform==='eBay Live'?'selected':''}>eBay Live</option><option ${lsaBuilderState.platform==='Fanatics Live'?'selected':''}>Fanatics Live</option><option ${lsaBuilderState.platform==='Whatnot'?'selected':''}>Whatnot</option><option ${lsaBuilderState.platform==='Other'?'selected':''}>Other</option></select></div>
+    <div class="cg"><label>Show Date</label><input type="date" id="lsaBuilderDate" value="${lsaBuilderState.showDate}" onchange="lsaBuilderState.showDate=this.value"></div>
+    <div class="cg"><label>Platform Fee %</label><input type="number" id="lsaBuilderFee" min="0" step="0.1" value="${lsaBuilderState.feePct}" onchange="lsaBuilderState.feePct=parseFloat(this.value)||0"></div>
+  </div>
+  <div class="lsa-actions"><button class="btn btn-s" onclick="document.getElementById('lsaPreCsv').click()">Upload Pre-Show CSV</button><input id="lsaPreCsv" type="file" accept=".csv" style="display:none" onchange="lsaHandlePreShowCsv(this.files[0])"><button class="btn btn-p" onclick="lsaSaveShow()">Save Show</button></div>
+  <div class="lsa-search-wrap"><div class="cg"><label>Add Cards via Search</label><input class="si" id="lsaCardSearch" placeholder="Search card name, set, number" oninput="lsaHandleSearch(this.value)"></div><div id="lsaSearchResults" class="lsa-search-results"></div><div id="lsaPendingAdd"></div></div>
+  <div class="lsa-card"><h3>Show Items (${lsaBuilderState.items.length})</h3><div id="lsaBuilderItems">${lsaRenderBuilderItems()}</div></div></div>`;
+  host.innerHTML=html;
+  const streamerSel=document.getElementById('lsaBuilderStreamer');if(streamerSel)streamerSel.value=lsaBuilderState.streamerId;
+}
+function lsaBuilderSetStreamer(v){lsaBuilderState.streamerId=v;lsaBuilderState.feePct=lsaPlatformDefault(v,lsaBuilderState.platform);lsaRenderBuilder()}
+function lsaBuilderSetPlatform(v){lsaBuilderState.platform=v;lsaBuilderState.feePct=lsaPlatformDefault(lsaBuilderState.streamerId,v);lsaRenderBuilder()}
+function lsaSearchMaster(q){const out=[];const ql=q.toLowerCase().trim();if(ql.length<2)return out;const words=ql.split(/\s+/);for(const[sid,s]of Object.entries(SD)){for(const[rar,cards]of Object.entries(s.c)){for(const[cn,nm]of Object.entries(cards)){const hay=(nm+' '+s.sn+' '+cn+' '+rar).toLowerCase();if(words.every(w=>hay.includes(w))){out.push({setId:sid,series:s.sr||s.sd||'',searchName:s.sn,setName:s.sn,cardNumber:cn,name:nm,rarity:rar});if(out.length>=16)return out}}}}return out}
+function lsaHandleSearch(v){const results=lsaSearchMaster(v);lsaBuilderState.searchResults=results;const el=document.getElementById('lsaSearchResults');if(!v.trim()||v.trim().length<2){el.innerHTML='';return}if(!results.length){el.innerHTML='<div class="ms-em">No matches</div>';return}el.innerHTML=results.map((r,i)=>'<div class="lsa-search-row" onclick="lsaChooseSearchResult('+i+')"><div class="lsa-name">'+r.name+'</div><div class="lsa-sub">'+r.setName+' / '+r.cardNumber+' / '+r.rarity+'</div></div>').join('')}
+function lsaChooseSearchResult(i){lsaBuilderState.pendingCard=lsaBuilderState.searchResults[i];const c=lsaBuilderState.pendingCard;document.getElementById('lsaPendingAdd').innerHTML='<div class="lsa-card"><h3>Add '+c.name+'</h3><div class="lsa-inline"><input class="si" id="lsaItemIdentifier" placeholder="Item Identifier"><select id="lsaGradeSelect"><option value="Raw NM">Raw NM</option><option value="CGC 10">CGC 10</option><option value="PSA 10">PSA 10</option><option value="BGS 10">BGS 10</option><option value="SGC 10">SGC 10</option></select><button class="btn btn-p" onclick="lsaAddPendingCard()">Add Card</button></div><div class="lsa-note" style="margin:8px 0 0">Item Identifier must match the platform listing title or identifier you will upload post-show.</div></div>'}
+async function lsaFetchSnapshot(card,conditionOrGrade){const setId=await resolveSetNumericId(card);if(!setId)throw new Error('Set not found');const pool=await fetchRawSetCards(setId,null,null,null);const rawCard=pickMatchedCardFromPool(pool,card);if(!rawCard)throw new Error('Card match failed');if(conditionOrGrade==='Raw NM')return{cardReference:String(rawCard.tcgPlayerId),marketValueSnapshot:rawCard.prices?.market??null,marketValueType:'Raw NM'};const detail=await fetchCardDetail(rawCard.tcgPlayerId);const key=conditionOrGrade.toLowerCase().replace(/\s+/g,'');const gradeData=detail?.ebay?.salesByGrade?.[key];return{cardReference:String(rawCard.tcgPlayerId),marketValueSnapshot:getGP(gradeData),marketValueType:conditionOrGrade}}
+async function lsaAddPendingCard(){const card=lsaBuilderState.pendingCard;const itemId=(document.getElementById('lsaItemIdentifier')?.value||'').trim();const grade=document.getElementById('lsaGradeSelect')?.value||'Raw NM';if(!card||!itemId){alert('Add an item identifier first.');return}if(lsaBuilderState.items.some(i=>normTxt(i.itemIdentifier)===normTxt(itemId))){alert('Item Identifier must be unique within the show.');return}try{showSt('statusBar','Fetching market snapshot...',20);const snap=await lsaFetchSnapshot(card,grade);hideSt('statusBar');lsaBuilderState.items.push({itemIdentifier:itemId,cardReference:snap.cardReference,cardName:card.name,setName:card.setName,cardNumber:card.cardNumber,conditionOrGrade:grade,marketValueSnapshot:snap.marketValueSnapshot,marketValueType:snap.marketValueType,salePrice:null,platformFeePercentage:parseFloat(lsaBuilderState.feePct)||0,feeAdjustedNet:null,realizationRate:null,soldStatus:false});lsaBuilderState.pendingCard=null;document.getElementById('lsaCardSearch').value='';document.getElementById('lsaSearchResults').innerHTML='';document.getElementById('lsaPendingAdd').innerHTML='';lsaRenderBuilder()}catch(e){hideSt('statusBar');alert('Snapshot error: '+e.message)}}
+function lsaRenderBuilderItems(){if(!lsaBuilderState.items.length)return '<div class="pem">No cards added yet.</div>';return lsaBuilderState.items.map((it,idx)=>'<div class="lsa-item"><div><div class="lsa-name">'+it.cardName+'</div><div class="lsa-sub">'+it.itemIdentifier+' / '+it.setName+' / '+it.cardNumber+' / '+it.conditionOrGrade+'</div></div><div class="lsa-right"><div class="lsa-strong">'+(it.marketValueSnapshot!=null?money(it.marketValueSnapshot):'--')+'</div><div><button class="btn btn-s btn-sm" onclick="lsaRemoveBuilderItem('+idx+')">Remove</button></div></div></div>').join('')}
+function lsaRemoveBuilderItem(idx){lsaBuilderState.items.splice(idx,1);lsaRenderBuilder()}
+function lsaSaveShow(){if(!lsaBuilderState.items.length){alert('Add at least one card first.');return}const show={id:'show_'+Date.now(),streamerId:lsaBuilderState.streamerId,platform:lsaBuilderState.platform,showDate:lsaBuilderState.showDate||new Date().toISOString().slice(0,10),ingestionMethod:'Show Builder',status:'Active',platformFeePercentage:parseFloat(lsaBuilderState.feePct)||0,items:JSON.parse(JSON.stringify(lsaBuilderState.items)),totalCardsListed:lsaBuilderState.items.length,totalCardsSold:0,totalCardsUnsold:lsaBuilderState.items.length,totalGrossRevenue:0,totalFeeAdjustedNet:0,averageRealizationRate:0,sellThroughRate:0};lsaState.shows.push(show);lsaSave();lsaBuilderState={platform:'eBay Live',showDate:new Date().toISOString().slice(0,10),feePct:lsaPlatformDefault(lsaState.currentStreamerId,'eBay Live'),streamerId:lsaState.currentStreamerId,items:[],searchResults:[],pendingCard:null};lsaRenderAll();lsaShowView('history',document.querySelector('#tab-streams .sni:first-child'));alert('Show saved as Active.')}
+function lsaCsvRows(text){
+  const lines=text.split(/\r?\n/).filter(Boolean);
+  if(!lines.length)return [];
+  const parseLine=line=>{
+    const out=[];let cur='',q=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch==='"'){
+        if(q&&line[i+1]==='"'){cur+='"';i++;} else q=!q;
+      } else if(ch===','&&!q){out.push(cur);cur='';}
+      else cur+=ch;
+    }
+    out.push(cur);
+    return out.map(v=>v.trim());
+  };
+  const headers=parseLine(lines[0]).map(h=>h.replace(/^"|"$/g,''));
+  return lines.slice(1).map(line=>{const vals=parseLine(line);const o={};headers.forEach((h,i)=>o[h]=vals[i]||'');return o});
+}
+function lsaHeaderMap(headers,candidates){const normalized=headers.map(h=>({raw:h,n:normTxt(h)}));for(const c of candidates){const found=normalized.find(h=>h.n===normTxt(c));if(found)return found.raw}return null}
+async function lsaHandlePreShowCsv(file){
+  if(!file)return;
+  const txt=await file.text();const rows=lsaCsvRows(txt);
+  if(!rows.length){alert('CSV is empty.');return}
+  const headers=Object.keys(rows[0]||{});
+  const map={item:lsaHeaderMap(headers,['Item Identifier','Item ID','Identifier']),name:lsaHeaderMap(headers,['Card Name','Name']),set:lsaHeaderMap(headers,['Set Name','Set']),num:lsaHeaderMap(headers,['Card Number','Number']),grade:lsaHeaderMap(headers,['Condition or Grade','Condition','Grade'])};
+  if(!map.item||!map.name||!map.set||!map.num||!map.grade){alert('Pre-show CSV requires Item Identifier, Card Name, Set Name, Card Number, and Condition or Grade.');return}
+  const unresolved=[];let added=0;
+  for(const row of rows){
+    const card=lsaSearchMaster(`${row[map.name]||''} ${row[map.set]||''} ${row[map.num]||''}`).find(r=>normTxt(r.name)===normTxt(row[map.name])&&normTxt(r.setName)===normTxt(row[map.set])&&rootCardNum(r.cardNumber)===rootCardNum(row[map.num]));
+    if(!card){unresolved.push(`${row[map.item]} / ${row[map.name]}`);continue}
+    try{
+      const snap=await lsaFetchSnapshot(card,row[map.grade]||'Raw NM');
+      lsaBuilderState.items.push({itemIdentifier:row[map.item],cardReference:snap.cardReference,cardName:card.name,setName:card.setName,cardNumber:card.cardNumber,conditionOrGrade:row[map.grade]||'Raw NM',marketValueSnapshot:snap.marketValueSnapshot,marketValueType:snap.marketValueType,salePrice:null,platformFeePercentage:parseFloat(lsaBuilderState.feePct)||0,feeAdjustedNet:null,realizationRate:null,soldStatus:false});
+      added++;
+    }catch{unresolved.push(`${row[map.item]} / ${row[map.name]}`)}
+  }
+  lsaRenderBuilder();
+  alert(`Pre-show CSV added ${added} items${unresolved.length?`\nUnresolved: ${unresolved.slice(0,8).join(', ')}`:''}`);
+}
+function lsaRenderComplete(){
+  const host=document.getElementById('lsa-complete');
+  const active=lsaVisibleShows().filter(s=>s.status==='Active');
+  if(!active.length){host.innerHTML='<div class="es"><h2>No Active Shows</h2><p style="font-size:8px">Create a show first, then upload the post-show order export here.</p></div>';return}
+  host.innerHTML=`<div class="lsa-grid"><div class="cg2"><div class="cg"><label>Active Show</label><select id="lsaActiveShow">${active.map(s=>`<option value="${s.id}">${s.showDate} / ${(lsaState.streamers.find(x=>x.id===s.streamerId)?.name||'Unknown')} / ${s.platform} / ${s.items.length} cards</option>`).join('')}</select></div><div class="cg"><label>Post-Show Upload</label><button class="btn btn-p" onclick="document.getElementById('lsaPostCsv').click()">Upload Sales CSV</button><input id="lsaPostCsv" type="file" accept=".csv" style="display:none" onchange="lsaHandlePostShowCsv(this.files[0])"></div></div><div id="lsaPostPreview" class="lsa-card"><h3>Completion Preview</h3><div class="pem">Upload a post-show export to match sold items by Item Identifier.</div></div></div>`;
+}
+async function lsaHandlePostShowCsv(file){
+  if(!file)return;
+  const txt=await file.text();const rows=lsaCsvRows(txt);
+  if(!rows.length){alert('CSV is empty.');return}
+  const headers=Object.keys(rows[0]||{});
+  const itemHeader=lsaHeaderMap(headers,['Item Identifier','Item Title','Listing Title','SKU','Item Number','Listing','Title']);
+  const saleHeader=lsaHeaderMap(headers,['Sale Price','Price','Sold Price','Order Total','Item Price']);
+  if(!itemHeader||!saleHeader){alert('Could not detect Item Identifier and Sale Price columns.');return}
+  const showId=document.getElementById('lsaActiveShow').value;const show=lsaState.shows.find(s=>s.id===showId);if(!show)return;
+  const soldMap={};
+  rows.forEach(r=>{const key=normTxt(r[itemHeader]);if(!key)return;const price=parseFloat(String(r[saleHeader]||'').replace(/[^0-9.\-]/g,''));if(!Number.isFinite(price))return;soldMap[key]=(soldMap[key]||0)+price});
+  const matched=[];
+  const updated=show.items.map(item=>{const key=normTxt(item.itemIdentifier);if(Object.prototype.hasOwnProperty.call(soldMap,key)){const salePrice=soldMap[key];const feeAdjustedNet=salePrice*(1-(show.platformFeePercentage||0)/100);const realizationRate=item.marketValueSnapshot?feeAdjustedNet/item.marketValueSnapshot*100:0;matched.push(item.itemIdentifier);return {...item,salePrice,feeAdjustedNet,realizationRate,soldStatus:true}}return {...item,soldStatus:false,salePrice:null,feeAdjustedNet:null,realizationRate:null}});
+  const gross=updated.filter(i=>i.soldStatus).reduce((a,b)=>a+(b.salePrice||0),0);
+  const net=updated.filter(i=>i.soldStatus).reduce((a,b)=>a+(b.feeAdjustedNet||0),0);
+  const sold=updated.filter(i=>i.soldStatus).length;
+  const rr=updated.filter(i=>i.soldStatus&&Number.isFinite(i.realizationRate));
+  lsaCompletionPreview={showId,updated,summary:{gross,net,sold,listed:updated.length,unsold:updated.length-sold,sellThrough:updated.length?(sold/updated.length*100):0,avgRealization:rr.length?rr.reduce((a,b)=>a+b.realizationRate,0)/rr.length:0,matched}};
+  document.getElementById('lsaPostPreview').innerHTML=`<h3>Completion Preview</h3><div class="lsa-item"><div><div class="lsa-name">Matched Sold Items</div><div class="lsa-sub">${matched.length} matched by Item Identifier</div></div><div class="lsa-right">${matched.length}</div></div><div class="lsa-item"><div><div class="lsa-name">Gross Revenue</div></div><div class="lsa-right">${money(gross)}</div></div><div class="lsa-item"><div><div class="lsa-name">Fee-Adjusted Net</div></div><div class="lsa-right">${money(net)}</div></div><div class="lsa-item"><div><div class="lsa-name">Average Realization Rate</div></div><div class="lsa-right">${pct(lsaCompletionPreview.summary.avgRealization)}</div></div><div class="lsa-item"><div><div class="lsa-name">Sell-Through Rate</div></div><div class="lsa-right">${pct(lsaCompletionPreview.summary.sellThrough)}</div></div><div class="lsa-actions"><button class="btn btn-p" onclick="lsaConfirmComplete()">Complete Show</button></div>`;
+}
+function lsaConfirmComplete(){if(!lsaCompletionPreview){alert('Upload a post-show CSV first.');return}const show=lsaState.shows.find(s=>s.id===lsaCompletionPreview.showId);if(!show)return;Object.assign(show,{status:'Completed',items:lsaCompletionPreview.updated,totalGrossRevenue:lsaCompletionPreview.summary.gross,totalFeeAdjustedNet:lsaCompletionPreview.summary.net,averageRealizationRate:lsaCompletionPreview.summary.avgRealization,sellThroughRate:lsaCompletionPreview.summary.sellThrough,totalCardsListed:lsaCompletionPreview.summary.listed,totalCardsSold:lsaCompletionPreview.summary.sold,totalCardsUnsold:lsaCompletionPreview.summary.unsold});lsaCompletionPreview=null;lsaSave();lsaRenderAll();lsaShowView('history',document.querySelector('#tab-streams .sni:first-child'));alert('Show completed.')}
+function lsaRenderDashboard(){const host=document.getElementById('lsa-dashboard');const visible=lsaVisibleShows().filter(s=>s.status==='Completed');const streamerOptions='<option value="">All</option>'+lsaActiveStreamers().map(s=>'<option value="'+s.id+'">'+s.name+'</option>').join('');const platformOptions='<option value="">All</option><option>eBay Live</option><option>Fanatics Live</option><option>Whatnot</option><option>Other</option>';host.innerHTML='<div class="lsa-grid"><div class="cg2"><div class="cg"><label>Date From</label><input type="date" id="lsaDashFrom" onchange="lsaRenderDashboardResults()"></div><div class="cg"><label>Date To</label><input type="date" id="lsaDashTo" onchange="lsaRenderDashboardResults()"></div><div class="cg"><label>Platform</label><select id="lsaDashPlatform" onchange="lsaRenderDashboardResults()">'+platformOptions+'</select></div><div class="cg"><label>Streamer</label><select id="lsaDashStreamer" onchange="lsaRenderDashboardResults()">'+streamerOptions+'</select></div></div></div><div id="lsaDashBody"></div>';lsaRenderDashboardResults()}
+function lsaFilteredDashboardShows(){let shows=lsaVisibleShows().filter(s=>s.status==='Completed');const f=document.getElementById('lsaDashFrom')?.value||'';const t=document.getElementById('lsaDashTo')?.value||'';const p=document.getElementById('lsaDashPlatform')?.value||'';const s=document.getElementById('lsaDashStreamer')?.value||'';if(f)shows=shows.filter(x=>x.showDate>=f);if(t)shows=shows.filter(x=>x.showDate<=t);if(p)shows=shows.filter(x=>x.platform===p);if(s)shows=shows.filter(x=>x.streamerId===s);return shows}
+function lsaRenderDashboardResults(){
+  const body=document.getElementById('lsaDashBody');if(!body)return;
+  const shows=lsaFilteredDashboardShows();const m=lsaMetricSummary(shows);
+  let html=`<div class="lsa-mini">
+    <div class="smc"><div class="l">Total Shows</div><div class="v">${m.shows}</div></div>
+    <div class="smc"><div class="l">Gross Revenue</div><div class="v">${money(m.gross)}</div></div>
+    <div class="smc"><div class="l">Fee-Adjusted Net</div><div class="v">${money(m.net)}</div></div>
+    <div class="smc"><div class="l">Avg Realization</div><div class="v">${pct(m.avgRealization)}</div></div>
+    <div class="smc"><div class="l">Avg Sell-Through</div><div class="v">${pct(m.sellThrough)}</div></div>
+  </div>`;
+  const byPlatform={};shows.forEach(s=>{(byPlatform[s.platform]||(byPlatform[s.platform]=[])).push(s)});
+  html+=`<div class="lsa-card"><h3>Platform Comparison</h3>${Object.keys(byPlatform).length?Object.entries(byPlatform).map(([platform,list])=>{const pm=lsaMetricSummary(list);return `<div class="lsa-item"><div><div class="lsa-name">${platform}</div><div class="lsa-sub">${list.length} show(s)</div></div><div class="lsa-right"><div>${money((pm.gross/list.length)||0)} avg gross</div><div class="lsa-sub">${pct(pm.avgRealization)} realization / ${pct(pm.sellThrough)} sell-through</div></div></div>`}).join(''):'<div class="pem">No completed shows in the selected period.</div>'}</div>`;
+  const perDate=[...shows].sort((a,b)=>a.showDate.localeCompare(b.showDate));
+  html+=`<div class="lsa-card"><h3>Performance Over Time</h3>${perDate.length?perDate.map(s=>`<div class="lsa-item"><div><div class="lsa-name">${s.showDate}</div><div class="lsa-sub">${lsaScopeText(s)}</div></div><div class="lsa-right"><div>${pct(s.averageRealizationRate||0)}</div><div class="lsa-sub">${money(s.totalGrossRevenue||0)} gross</div></div></div>`).join(''):'<div class="pem">No trend data yet.</div>'}</div>`;
+  const visibleStreamers=lsaState.role==='Admin'?lsaActiveStreamers():lsaActiveStreamers().filter(s=>s.id===lsaState.currentStreamerId);
+  html+=`<div class="lsa-table"><div class="head" style="grid-template-columns:1fr 54px 72px 72px 74px 74px"><div>Streamer</div><div>Shows</div><div>Realization</div><div>Sell-Through</div><div>Gross</div><div>Net</div></div>${visibleStreamers.map(st=>{const list=shows.filter(s=>s.streamerId===st.id);const sm=lsaMetricSummary(list);return `<div class="row" style="grid-template-columns:1fr 54px 72px 72px 74px 74px"><div class="lsa-name" onclick="document.getElementById('lsaDashStreamer').value='${st.id}';lsaRenderDashboardResults()" style="cursor:pointer">${st.name}</div><div>${list.length}</div><div>${pct(sm.avgRealization)}</div><div>${pct(sm.sellThrough)}</div><div>${money(sm.gross)}</div><div>${money(sm.net)}</div></div>`}).join('')}</div>`;
+  body.innerHTML=html;
+}
+function lsaRenderManage(){
+  const host=document.getElementById('lsa-manage');
+  if(lsaState.role!=='Admin'){host.innerHTML='<div class="es"><h2>Scoped Access</h2><p style="font-size:8px">Streamer users cannot manage account-level streamer records.</p></div>';return}
+  const streamerRows=(lsaState.streamers||[]).map(st=>`<div class="lsa-item"><div><div class="lsa-name">${st.name}</div><div class="lsa-sub">${st.active===false?'Inactive':'Active'}</div></div><div class="lsa-right"><div class="lsa-inline"><button class="btn btn-s btn-sm" onclick="lsaToggleStreamer('${st.id}')">${st.active===false?'Activate':'Deactivate'}</button></div><div class="lsa-sub">eBay ${st.defaults?.['eBay Live']??12}% / Fanatics ${st.defaults?.['Fanatics Live']??10}% / Whatnot ${st.defaults?.['Whatnot']??11}%</div></div></div>`).join('');
+  const feeRows=(lsaState.streamers||[]).map(st=>`<div class="lsa-item"><div><div class="lsa-name">${st.name}</div></div><div class="lsa-right"><input class="si" style="width:70px;display:inline-block" value="${st.defaults?.['eBay Live']??12}" onchange="lsaSetDefaultFee('${st.id}','eBay Live',this.value)"><input class="si" style="width:70px;display:inline-block;margin-left:4px" value="${st.defaults?.['Fanatics Live']??10}" onchange="lsaSetDefaultFee('${st.id}','Fanatics Live',this.value)"><input class="si" style="width:70px;display:inline-block;margin-left:4px" value="${st.defaults?.['Whatnot']??11}" onchange="lsaSetDefaultFee('${st.id}','Whatnot',this.value)"></div></div>`).join('');
+  host.innerHTML=`<div class="lsa-grid"><div class="lsa-card"><h3>Create Streamer</h3><div class="lsa-inline"><input class="si" id="lsaNewStreamer" placeholder="Streamer display name"><button class="btn btn-p" onclick="lsaAddStreamer()">Add</button></div></div><div class="lsa-card"><h3>Manage Streamers</h3>${streamerRows}</div><div class="lsa-card"><h3>Default Platform Fees</h3>${feeRows}<div class="lsa-note">Inputs shown in order: eBay Live, Fanatics Live, Whatnot. Use Other inside the Builder as needed.</div></div></div>`;
+}
+function lsaAddStreamer(){const name=(document.getElementById('lsaNewStreamer')?.value||'').trim();if(!name)return;lsaState.streamers.push({id:'streamer_'+Date.now(),name,active:true,defaults:{'eBay Live':12,'Fanatics Live':10,'Whatnot':11,'Other':10}});lsaSave();lsaRenderAll()}
+function lsaToggleStreamer(id){const s=lsaState.streamers.find(x=>x.id===id);if(!s)return;s.active=s.active===false?true:false;lsaSave();lsaRenderAll()}
+function lsaSetDefaultFee(id,platform,val){const s=lsaState.streamers.find(x=>x.id===id);if(!s)return;s.defaults=s.defaults||{};s.defaults[platform]=parseFloat(val)||0;lsaSave()}
+setTimeout(lsaLoad,0);
 </script></body></html>
