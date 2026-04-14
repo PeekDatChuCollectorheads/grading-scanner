@@ -283,7 +283,7 @@ async function apiCall(ep,params){
     if(resp.ok)return JSON.parse(await resp.text());
     let msg='API '+resp.status;
     try{const body=await resp.text();if(body){try{const j=JSON.parse(body);if(j.message)msg+=': '+j.message;else if(j.error)msg+=': '+j.error}catch{msg+=': '+body.slice(0,160)}}}catch{}
-    if(resp.status===429&&attempt===0){await sleep(2500);continue}
+    if(resp.status===429&&attempt===0){await sleep(12000);continue}
     throw new Error(msg);
   }
   return null;
@@ -299,14 +299,45 @@ function rangeText(min,max){if(Number.isFinite(min)&&Number.isFinite(max))return
 function parseOptionalRange(){const minEl=document.getElementById('priceMin').value.trim(),maxEl=document.getElementById('priceMax').value.trim();const hasMin=minEl!==''&&!isNaN(parseFloat(minEl)),hasMax=maxEl!==''&&!isNaN(parseFloat(maxEl));const min=hasMin?parseFloat(minEl):null,max=hasMax?parseFloat(maxEl):null;if(hasMin&&min<0)throw new Error('Min price must be 0 or higher');if(hasMax&&max<=0)throw new Error('Max price must be greater than 0');if(hasMin&&hasMax&&max<min)throw new Error('Max price must be greater than or equal to min price');return{min,max}}
 function parseRequiredRange(){const range=parseOptionalRange();if(!Number.isFinite(range.min)||!Number.isFinite(range.max))throw new Error('Enter a valid price range');return range}
 function diagLabel(card,reason,stage){return {...card,rawNM:null,cgc10:null,psa10:null,diag:reason+(stage?' ['+stage+']':'')}}
+const SET_SEARCH_ALIASES={
+  'hiddenfates':['Hidden Fates','Hidden Fates Shiny Vault'],
+  'hiddenfatesshinyvault':['Hidden Fates Shiny Vault','Hidden Fates'],
+  'shiningfates':['Shining Fates','Shining Fates Shiny Vault'],
+  'shiningfatesshinyvault':['Shining Fates Shiny Vault','Shining Fates']
+};
+
+function setSearchCandidates(card){
+  const base=String(card.searchName||card.setName||'').trim();
+  const norm=normTxt(base);
+  const arr=[base];
+  if(SET_SEARCH_ALIASES[norm])arr.push(...SET_SEARCH_ALIASES[norm]);
+  const simple=base.replace(/[—–-]/g,' ').replace(/\s+/g,' ').trim();
+  if(simple && !arr.includes(simple))arr.push(simple);
+  return [...new Set(arr.filter(Boolean))];
+}
+
 async function resolveSetNumericId(card){
   const key=(card.series||'')+'|'+(card.searchName||card.setName||'');
   if(Object.prototype.hasOwnProperty.call(setNumericIdCache,key))return setNumericIdCache[key];
-  const data=await apiCall('/sets',{search:card.searchName||card.setName,series:card.series,limit:'25'});
-  const arr=Array.isArray(data?.data)?data.data:[];
-  const target=normTxt(card.searchName||card.setName);
-  let best=arr.find(x=>normTxt(x.name)===target&&x.tcgPlayerNumericId!=null)
-        || arr.find(x=>normTxt(x.name).includes(target)&&x.tcgPlayerNumericId!=null)
+  const candidates=setSearchCandidates(card);
+  let arr=[];
+  for(const q of candidates){
+    try{
+      const d1=await apiCall('/sets',{search:q,series:card.series,limit:'50'});
+      const a1=Array.isArray(d1?.data)?d1.data:[];
+      if(a1.length)arr.push(...a1);
+      if(!a1.length){
+        const d2=await apiCall('/sets',{search:q,limit:'50'});
+        const a2=Array.isArray(d2?.data)?d2.data:[];
+        if(a2.length)arr.push(...a2);
+      }
+    }catch(e){if(isStopError(e))throw e;}
+    if(arr.length)break;
+  }
+  arr=dedupeById(arr);
+  const targetNames=candidates.map(normTxt);
+  let best=arr.find(x=>targetNames.includes(normTxt(x.name))&&x.tcgPlayerNumericId!=null)
+        || arr.find(x=>targetNames.some(t=>normTxt(x.name).includes(t)||t.includes(normTxt(x.name)))&&x.tcgPlayerNumericId!=null)
         || arr.find(x=>x.tcgPlayerNumericId!=null)
         || null;
   setNumericIdCache[key]=best?String(best.tcgPlayerNumericId):null;
@@ -316,14 +347,33 @@ function dedupeById(arr){const m=new Map();arr.forEach(x=>{const k=String(x?.tcg
 async function fetchRawSetCards(numericSetId,rarity,min,max){
   const key=[numericSetId,rarity||'',Number.isFinite(min)?min:'',Number.isFinite(max)?max:''].join('|');
   if(rawSetCache[key])return rawSetCache[key];
-  let out=[],offset=0,guard=0,hasMore=false;
+  let out=[],offset=0,guard=0,hasMore=false,lastCount=0;
   do{
     const data=await apiCall('/cards',{setId:numericSetId,fetchAllInSet:'true',rarity:rarity||undefined,minPrice:Number.isFinite(min)?String(min):undefined,maxPrice:Number.isFinite(max)?String(max):undefined,limit:'200',offset:String(offset),sortBy:'cardNumber',sortOrder:'asc'});
     const arr=Array.isArray(data?.data)?data.data:(data?.data?[data.data]:[]);
-    out.push(...arr);hasMore=!!data?.metadata?.hasMore;offset+=data?.metadata?.count||arr.length;if(!arr.length)break;guard++;
-  }while(hasMore&&guard<20&&!stopRequested);
+    out.push(...arr);
+    lastCount=arr.length;
+    hasMore=!!data?.metadata?.hasMore;
+    offset+=arr.length;
+    guard++;
+  }while((hasMore||lastCount===200)&&lastCount>0&&offset<5000&&guard<30&&!stopRequested);
   rawSetCache[key]=dedupeById(out);
   return rawSetCache[key];
+}
+
+async function searchRawCardFallback(card){
+  const queries=[
+    {search:(card.name+' '+card.cardNumber).trim(),set:card.searchName||card.setName,limit:'12',sortBy:'cardNumber',sortOrder:'asc'},
+    {search:card.name,set:card.searchName||card.setName,limit:'12',sortBy:'cardNumber',sortOrder:'asc'},
+    {search:(card.name+' '+rootCardNum(card.cardNumber)).trim(),set:card.searchName||card.setName,limit:'12',sortBy:'cardNumber',sortOrder:'asc'}
+  ];
+  for(const q of queries){
+    const data=await apiCall('/cards',q);
+    const arr=Array.isArray(data?.data)?data.data:(data?.data?[data.data]:[]);
+    const picked=pickMatchedCardFromPool(arr,card);
+    if(picked)return picked;
+  }
+  return null;
 }
 function pickMatchedCardFromPool(pool,card){
   const root=rootCardNum(card.cardNumber),name=normTxt(card.name),rar=normTxt(card.rarity);
@@ -369,19 +419,37 @@ async function scanBatch(cards,stId,opts={}){
     let pool=[];
     try{pool=await fetchRawSetCards(numericSetId,null,null,null)}catch(e){if(isStopError(e))throw e;group.forEach(card=>{results.push(diagLabel(card,e.message||'Raw fetch failed','set raw'));completed++;});continue}
     pool=dedupeById(pool);
+    const unmatched=[];
     for(const card of group){
       const rawCard=pickMatchedCardFromPool(pool,card);
-      if(!rawCard){results.push(diagLabel(card,'No matching raw card found in selected set pool','setId+cardNumber'));completed++;continue}
-      const mappedApiUi=getUiRarityMapValue(rawCard.setName||card.setName,rawCard.cardNumber,rawCard.name);
-      const apiUi=mappedApiUi||resolveUiRarity(rawCard.setName||card.setName,rawCard.cardNumber,rawCard.name,rawCard.rarity);
-      if(card.rarity&&mappedApiUi&&card.rarity!==mappedApiUi){results.push(diagLabel(card,'Matched card rarity mismatch','ui rarity'));completed++;continue}
+      if(!rawCard){unmatched.push(card);continue}
       matched.push({...card,_tcgPlayerId:rawCard.tcgPlayerId,_rawNM:rawCard.prices?.market??null,_image:rawCard.imageCdnUrl200||rawCard.imageCdnUrl400||null});
     }
+    for(const card of unmatched){
+      try{
+        const rawCard=await searchRawCardFallback(card);
+        if(!rawCard){results.push(diagLabel(card,'No matching raw card found in selected set pool','setId+cardNumber'));completed++;continue}
+        matched.push({...card,_tcgPlayerId:rawCard.tcgPlayerId,_rawNM:rawCard.prices?.market??null,_image:rawCard.imageCdnUrl200||rawCard.imageCdnUrl400||null});
+      }catch(e){
+        if(isStopError(e))throw e;
+        results.push(diagLabel(card,e.message||'Raw fallback failed','card search'));completed++;
+      }
+    }
   }
-  const detailQueue=opts.maxDetails?applyDetailCap(matched,opts.maxDetails,opts.detailOrder||'desc'):matched;
-  const skippedCount=Math.max(0,matched.length-detailQueue.length);
+  const inRange=[],outOfRange=[];
+  matched.forEach(card=>{
+    const raw=card._rawNM;
+    if(raw==null){inRange.push(card);return}
+    if(Number.isFinite(opts.min)&&raw<opts.min){outOfRange.push({...card,rawNM:raw,cgc10:null,psa10:null,diag:'Outside selected raw price range [raw range]'});return}
+    if(Number.isFinite(opts.max)&&raw>opts.max){outOfRange.push({...card,rawNM:raw,cgc10:null,psa10:null,diag:'Outside selected raw price range [raw range]'});return}
+    inRange.push(card);
+  });
+  results.push(...outOfRange);
+  completed+=outOfRange.length;
+  const detailQueue=opts.maxDetails?applyDetailCap(inRange,opts.maxDetails,opts.detailOrder||'desc'):inRange;
+  const skippedCount=Math.max(0,inRange.length-detailQueue.length);
   completed+=skippedCount;
-  const batchSize=4;
+  const batchSize=2;
   for(let i=0;i<detailQueue.length;i+=batchSize){
     if(stopRequested)throw new DOMException('Scan stopped','AbortError');
     const batch=detailQueue.slice(i,i+batchSize);
@@ -397,7 +465,7 @@ async function scanBatch(cards,stId,opts={}){
     }));
     results.push(...rows);completed+=batch.length;
   }
-  results._capMeta={candidateCount:matched.length,detailedCount:detailQueue.length,skippedCount,limit:opts.maxDetails||null,detailOrder:opts.detailOrder||'desc'};
+  results._capMeta={candidateCount:matched.length,inRangeCount:inRange.length,detailedCount:detailQueue.length,skippedCount,limit:opts.maxDetails||null,detailOrder:opts.detailOrder||'desc'};
   return results;
 }
 function addSpreads(r){r.forEach(c=>{c.cgcSpread=c.rawNM&&c.cgc10?(c.cgc10-c.rawNM):null;c.cgcPct=c.rawNM&&c.cgc10?((c.cgc10-c.rawNM)/c.rawNM)*100:null;c.psaSpread=c.rawNM&&c.psa10?(c.psa10-c.rawNM):null;c.psaPct=c.rawNM&&c.psa10?((c.psa10-c.rawNM)/c.rawNM)*100:null})}
