@@ -367,11 +367,11 @@ async function scanBatch(cards,stId,opts={}){
     try{numericSetId=await resolveSetNumericId(exemplar)}catch(e){if(isStopError(e))throw e}
     if(!numericSetId){group.forEach(card=>{results.push(diagLabel(card,'Set not found','set resolve'));completed++;});continue}
     let pool=[];
-    try{pool=await fetchRawSetCards(numericSetId,null,opts.min,opts.max)}catch(e){if(isStopError(e))throw e;group.forEach(card=>{results.push(diagLabel(card,e.message||'Raw fetch failed','set raw'));completed++;});continue}
+    try{pool=await fetchRawSetCards(numericSetId,null,null,null)}catch(e){if(isStopError(e))throw e;group.forEach(card=>{results.push(diagLabel(card,e.message||'Raw fetch failed','set raw'));completed++;});continue}
     pool=dedupeById(pool);
     for(const card of group){
       const rawCard=pickMatchedCardFromPool(pool,card);
-      if(!rawCard){results.push(diagLabel(card,'No matching raw card found in selected price range or set pool','setId+cardNumber'));completed++;continue}
+      if(!rawCard){results.push(diagLabel(card,'No matching raw card found in selected set pool','setId+cardNumber'));completed++;continue}
       const mappedApiUi=getUiRarityMapValue(rawCard.setName||card.setName,rawCard.cardNumber,rawCard.name);
       const apiUi=mappedApiUi||resolveUiRarity(rawCard.setName||card.setName,rawCard.cardNumber,rawCard.name,rawCard.rarity);
       if(card.rarity&&mappedApiUi&&card.rarity!==mappedApiUi){results.push(diagLabel(card,'Matched card rarity mismatch','ui rarity'));completed++;continue}
