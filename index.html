@@ -113,7 +113,7 @@ select,input[type=number]{background:var(--s2);border:1px solid var(--bdr);color
 <div class="bf">
 <div class="cg"><label>Total Budget ($)</label><input type="number" id="budgetTotal" placeholder="e.g. 1000" step="1" min="1" inputmode="numeric" pattern="[0-9]*"></div>
 <div class="cg2"><div class="cg"><label>Min $ / Card (required)</label><input type="number" id="budgetMin" placeholder="Min" step="1" min="0" inputmode="decimal"></div><div class="cg"><label>Max $ / Card (required)</label><input type="number" id="budgetMax" placeholder="Max" step="1" min="0" inputmode="decimal"></div></div>
-<div class="cg"><label>Total Cards Target (optional)</label><input type="number" id="budgetTargetCards" placeholder="Any quantity" step="1" min="1" inputmode="decimal"></div>
+<div class="cg"><label>Total Quantity Target (optional)</label><input type="number" id="budgetTargetCards" placeholder="Any quantity" step="1" min="1" inputmode="decimal"></div>
 <div class="cg2" style="margin-top:4px"><div class="cg"><label>Series</label><select id="budgetSeries"><option value="">Select</option></select></div><div class="cg"><label>Grader</label><select id="budgetGrader"><option value="cgc">CGC</option><option value="psa">PSA</option><option value="both">Both</option></select></div></div>
 <div class="cg" style="margin-top:4px"><label>Sets (optional, max 5)</label><div class="ms" id="bSetMs"><button class="ms-b" id="bSetBtn" type="button">All in series</button><div class="ms-p" id="bSetPanel"></div></div></div>
 <div class="cg" id="bRarGroup" style="margin-top:4px"><label>Rarity Tier</label><div class="ms" id="bRarMs"><button class="ms-b" id="bRarBtn" type="button">All rarities</button><div class="ms-p" id="bRarPanel"></div></div></div>
@@ -641,12 +641,24 @@ function budgetRow(r,i,gk){
 function budgetSummaryBox(plan,label){
   const util=plan.budget>0?(plan.totalSpent/plan.budget*100):0;
   const targetLabel=plan.targetRequested?(plan.totalCards+' / '+plan.targetRequested):(''+plan.totalCards);
+  const uniqueCards=plan.list?plan.list.length:0;
+  const eligibleCount=Number.isFinite(plan.eligibleCount)?plan.eligibleCount:uniqueCards;
+  const avgNeeded=plan.targetRequested?plan.budget/plan.targetRequested:null;
+  const avgSelected=plan.totalCards?plan.totalSpent/plan.totalCards:null;
+  const lowUtil=plan.targetRequested&&plan.totalCards>=plan.targetRequested&&util<80;
+  const limitedPool=eligibleCount>0&&eligibleCount<=Math.min(5,plan.targetRequested||eligibleCount);
+  const note=(lowUtil||limitedPool)?'<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--bdr);color:var(--yel);font-size:8px;line-height:1.4">'+
+    (limitedPool?'Only '+eligibleCount+' unique eligible '+label+' opportunities passed the current filters. ':'')+
+    (lowUtil?'Your quantity target was met, but the remaining budget could not be used without selecting more copies or finding higher-priced eligible cards. '+(avgNeeded?'Budget target average is $'+avgNeeded.toFixed(0)+' per card; selected average is $'+avgSelected.toFixed(0)+'.':''):'')+
+    '</div>':'';
   return '<div style="font-family:Syne;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);padding:6px 10px 0">'+label+'</div>'
     +'<div class="bsum"><div class="bsr"><span class="bsl">Budget</span><span class="bsv">$'+plan.budget.toFixed(0)+'</span></div>'
     +'<div class="bsr"><span class="bsl">Allocated</span><span class="bsv" style="color:var(--accent)">$'+plan.totalSpent.toFixed(0)+'</span></div>'
-    +'<div class="bsr"><span class="bsl">Cards</span><span class="bsv">'+targetLabel+'</span></div>'
+    +'<div class="bsr"><span class="bsl">Quantity</span><span class="bsv">'+targetLabel+'</span></div>'
+    +'<div class="bsr"><span class="bsl">Unique Cards</span><span class="bsv">'+uniqueCards+'</span></div>'
+    +'<div class="bsr"><span class="bsl">Eligible Opportunities</span><span class="bsv">'+eligibleCount+'</span></div>'
     +'<div class="bsr"><span class="bsl">Remaining</span><span class="bsv">$'+(plan.budget-plan.totalSpent).toFixed(0)+'</span></div>'
-    +'<div class="bsr"><span class="bsl">Utilization</span><span class="bsv">'+util.toFixed(0)+'%</span></div></div>';
+    +'<div class="bsr"><span class="bsl">Utilization</span><span class="bsv">'+util.toFixed(0)+'%</span></div>'+note+'</div>';
 }
 function confScore(v){
   const s=String(v||'').toLowerCase();
@@ -669,7 +681,7 @@ function buildBudgetPlan(viable,budget,targetRequested){
   let remaining=budget;
   let totalSpent=0;
   let totalCards=0;
-  if(!pool.length)return{budget,totalSpent:0,totalCards:0,list:[],targetRequested:targetRequested||null,targetAchievedTarget:0};
+  if(!pool.length)return{budget,totalSpent:0,totalCards:0,list:[],targetRequested:targetRequested||null,targetAchievedTarget:0,eligibleCount:0};
 
   const prices=pool.map(c=>c.rawNM).filter(v=>Number.isFinite(v)&&v>0);
   const minPrice=Math.min(...prices),maxPrice=Math.max(...prices);
@@ -818,7 +830,7 @@ function buildBudgetPlan(viable,budget,targetRequested){
     if(p!==0)return p;
     return b.qty-a.qty;
   });
-  return{budget,totalSpent,totalCards,list,targetRequested:targetRequested||null,targetAchievedTarget:desired||0};
+  return{budget,totalSpent,totalCards,list,targetRequested:targetRequested||null,targetAchievedTarget:desired||0,eligibleCount:pool.length};
 }
 function renderBudgetPlan(plan,gk,label){
   if(!plan.list.length)return'<div class="es"><h2>No Opportunities</h2><p style="font-size:8px">No positive '+label+' spread opportunities matched the current filters.</p></div>';
@@ -840,7 +852,7 @@ async function runBudget(){
 
   if(!budget||budget<=0){alert('Enter a budget');return}
   if(isNaN(mn)||isNaN(mx)||mx<=0||mx<mn){alert('Enter valid min/max');return}
-  if(targetRaw && (!Number.isInteger(targetCards) || targetCards<=0)){alert('Enter a valid total card target');return}
+  if(targetRaw && (!Number.isInteger(targetCards) || targetCards<=0)){alert('Enter a valid total quantity target');return}
   if(!sr){alert('Select a series');return}
   
 
