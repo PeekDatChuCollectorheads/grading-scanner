@@ -93,7 +93,7 @@ select,input[type=number]{background:var(--s2);border:1px solid var(--bdr);color
 <div class="cg"><label>Set</label><div class="ms" id="setMs"><button class="ms-b" id="setBtn" type="button">Select sets</button><div class="ms-p" id="setPanel"></div></div></div>
 <div class="cg" id="rarGroup"><label>Rarity Tier</label><div class="ms" id="rarMs"><button class="ms-b" id="rarBtn" type="button">All rarities</button><div class="ms-p" id="rarPanel"></div></div></div>
 <div class="cg"><label>Raw Price Range (required)</label><div class="pr"><input type="number" id="priceMin" placeholder="Min $" step="1" min="0" inputmode="decimal"><span>to</span><input type="number" id="priceMax" placeholder="Max $" step="1" min="0" inputmode="decimal"></div></div>
-</div><div class="ca"><button class="btn btn-p" id="scanBtn" onclick="doScan()">Scan</button><button class="btn btn-d" id="stopScanBtn" onclick="stopScan()" style="display:none">Stop Scan</button></div></div>
+</div><div class="ca"><button class="btn btn-p" id="scanBtn" onclick="doScan()">Scan</button><button class="btn btn-s" id="resetCreateBtn" onclick="resetCreateFilters()" type="button">Reset Filters</button><button class="btn btn-d" id="stopScanBtn" onclick="stopScan()" style="display:none">Stop Scan</button></div></div>
 <div class="stb2" id="statusBar" style="display:none"><span id="statusText"></span><div class="pgb"><div class="pgf" id="progressFill"></div></div></div>
 <div id="summaryArea"></div><div id="resultsArea"><div class="es"><h2>Select Filters and Scan</h2><p style="font-size:9px">Series + Sets + Price Range required. Up to 25 cards per scan.</p></div></div><div id="footerArea"></div>
 </div>
@@ -117,7 +117,7 @@ select,input[type=number]{background:var(--s2);border:1px solid var(--bdr);color
 <div class="cg2" style="margin-top:4px"><div class="cg"><label>Series</label><select id="budgetSeries"><option value="">Select</option></select></div><div class="cg"><label>Grader</label><select id="budgetGrader"><option value="cgc">CGC</option><option value="psa">PSA</option><option value="both">Both</option></select></div></div>
 <div class="cg" style="margin-top:4px"><label>Sets (optional, max 5)</label><div class="ms" id="bSetMs"><button class="ms-b" id="bSetBtn" type="button">All in series</button><div class="ms-p" id="bSetPanel"></div></div></div>
 <div class="cg" id="bRarGroup" style="margin-top:4px"><label>Rarity Tier</label><div class="ms" id="bRarMs"><button class="ms-b" id="bRarBtn" type="button">All rarities</button><div class="ms-p" id="bRarPanel"></div></div></div>
-<div class="ca"><button class="btn btn-p" id="bRunBtn" onclick="runBudget()">Generate List</button></div>
+<div class="ca"><button class="btn btn-p" id="bRunBtn" onclick="runBudget()">Generate List</button><button class="btn btn-s" id="resetBudgetBtn" onclick="resetBudgetFilters()" type="button">Reset Filters</button></div>
 </div>
 <div class="stb2" id="bStatus" style="display:none"><span id="bStatusText"></span><div class="pgb"><div class="pgf" id="bProgress"></div></div></div>
 <div id="budgetResultArea"></div>
@@ -354,6 +354,51 @@ function updateBSetDD(){const sr=document.getElementById('budgetSeries').value,a
 function updateBRarDD(){const sr=document.getElementById('budgetSeries').value;const sids=budgetSets.length?budgetSets:getSetsFor(sr).map(([sid])=>sid);const rs=new Set();sids.forEach(sid=>getSetUiRarities(sid).forEach(r=>rs.add(r)));const rars=sortRaritiesForSeries(sr,[...rs]);budgetRarities=budgetRarities.filter(r=>rars.includes(r));const p=document.getElementById('bRarPanel');let h='';if(!rars.length)h='<div class="ms-em">Select sets</div>';else rars.forEach(r=>{h+='<label class="ms-i"><input type="checkbox" data-brar="'+r+'"'+(budgetRarities.includes(r)?' checked':'')+'>'+r+'</label>'});p.innerHTML=h;p.querySelectorAll('input').forEach(cb=>{cb.addEventListener('change',function(){const r=this.dataset.brar;if(this.checked&&!budgetRarities.includes(r))budgetRarities.push(r);else budgetRarities=budgetRarities.filter(x=>x!==r);budgetRarities=sortRaritiesForSeries(sr,budgetRarities);document.getElementById('bRarBtn').textContent=!budgetRarities.length?'All rarities':budgetRarities.length<=2?budgetRarities.join(', '):budgetRarities.length+' Rarities'})});document.getElementById('bRarBtn').textContent=!budgetRarities.length?'All rarities':budgetRarities.length<=2?budgetRarities.join(', '):budgetRarities.length+' Rarities'}
 
 document.getElementById('budgetSeries').addEventListener('change',()=>{budgetSets=[];budgetRarities=[];updateBSetDD();updateBRarVis();updateBRarDD()});
+
+function resetCreateFilters(){
+  if(scanActive)stopScan();
+  const tcg=document.getElementById('tcgSelect');if(tcg)tcg.selectedIndex=0;
+  const series=document.getElementById('seriesSelect');if(series)series.value='';
+  const grader=document.getElementById('graderSelect');if(grader)grader.value='cgc';
+  const min=document.getElementById('priceMin');if(min)min.value='';
+  const max=document.getElementById('priceMax');if(max)max.value='';
+  selectedSets=[];
+  selectedRarities=[];
+  updateSetDD();
+  updateRarVis();
+  updateRarDD();
+  document.getElementById('setMs')?.classList.remove('open');
+  document.getElementById('rarMs')?.classList.remove('open');
+  hideSt('statusBar');
+  const pf=document.getElementById('progressFill');if(pf)pf.style.width='0%';
+  const scanBtn=document.getElementById('scanBtn');if(scanBtn)scanBtn.disabled=false;
+  const stopBtn=document.getElementById('stopScanBtn');if(stopBtn)stopBtn.style.display='none';
+  document.getElementById('summaryArea').innerHTML='';
+  document.getElementById('footerArea').innerHTML='';
+  document.getElementById('resultsArea').innerHTML='<div class="es"><h2>Select Filters and Scan</h2><p style="font-size:9px">Series + Sets + Price Range required. Up to 25 cards per scan.</p></div>';
+}
+
+function resetBudgetFilters(){
+  if(scanActive)stopScan();
+  const total=document.getElementById('budgetTotal');if(total)total.value='';
+  const min=document.getElementById('budgetMin');if(min)min.value='';
+  const max=document.getElementById('budgetMax');if(max)max.value='';
+  const target=document.getElementById('budgetTargetCards');if(target)target.value='';
+  const series=document.getElementById('budgetSeries');if(series)series.value='';
+  const grader=document.getElementById('budgetGrader');if(grader)grader.value='cgc';
+  budgetSets=[];
+  budgetRarities=[];
+  updateBSetDD();
+  updateBRarVis();
+  updateBRarDD();
+  document.getElementById('bSetMs')?.classList.remove('open');
+  document.getElementById('bRarMs')?.classList.remove('open');
+  hideSt('bStatus');
+  const pf=document.getElementById('bProgress');if(pf)pf.style.width='0%';
+  const runBtn=document.getElementById('bRunBtn');if(runBtn)runBtn.disabled=false;
+  document.getElementById('budgetResultArea').innerHTML='';
+}
+
 function getCards(sids,sr,rars){const cards=[];sids.forEach(sid=>{const s=SD[sid];for(const[rar,crds]of Object.entries(s.c||{})){for(const[cn,nm]of Object.entries(crds||{})){const uiR=resolveUiRarity(s.sn,cn,nm,rar);const searchName=getCardSearchSetName(s.sn,cn,nm);if(!rars.length||rars.includes(uiR))cards.push({setId:sid,setName:s.sn,searchName,apiSetKey:sr+'|'+searchName,cardNumber:cn,name:nm,rarity:uiR,sourceRarity:rar,series:sr})}}});return cards}
 
 // Efficient rate-aware API helpers
@@ -647,16 +692,37 @@ function buildBudgetPlan(viable,budget,targetRequested){
 
   const keyOf=(card)=>card.name+'|'+card.cardNumber+'|'+card.setName;
   const getQty=(card)=>alloc.get(keyOf(card))?.qty||0;
+  const slotsLeft=()=>desired?Math.max(1,desired-totalCards):null;
+  const targetIdealPrice=()=>desired?remaining/slotsLeft():0;
   const bandBonus=(card)=>{
     if(totalSpent<=0)return 0;
     const share=bandSpend[card._budgetBand]/totalSpent;
     const gap=Math.max(0,0.25-share);
     return Math.min(6,gap/0.25*6);
   };
+  const targetPriceFit=(card)=>{
+    if(!desired)return 0;
+    const ideal=targetIdealPrice();
+    if(!Number.isFinite(ideal)||ideal<=0)return 0;
+    const diff=Math.abs(card.rawNM-ideal)/ideal;
+    return Math.max(0,100-(diff*100));
+  };
+  const targetSpendPressure=(card)=>{
+    if(!desired)return 0;
+    const slots=slotsLeft();
+    const futureSlots=Math.max(0,slots-1);
+    const minNeededNow=Math.max(0,remaining-(maxPrice*futureSlots));
+    if(minNeededNow<=0)return 0;
+    if(card.rawNM>=minNeededNow)return 8;
+    return -Math.min(35,((minNeededNow-card.rawNM)/Math.max(1,minNeededNow))*35);
+  };
   const marginalScore=(card)=>{
     const qty=getQty(card);
-    const duplicatePenalty=Math.log1p(qty)*8;
+    const duplicatePenalty=Math.log1p(qty)*(desired?7:8);
     const utilizationPenalty=card.rawNM>remaining?9999:0;
+    if(desired){
+      return (card._budgetBaseScore*.65)+(targetPriceFit(card)*.35)+bandBonus(card)+targetSpendPressure(card)-duplicatePenalty-utilizationPenalty;
+    }
     return card._budgetBaseScore+bandBonus(card)-duplicatePenalty-utilizationPenalty;
   };
   const addOne=(card)=>{
@@ -670,13 +736,33 @@ function buildBudgetPlan(viable,budget,targetRequested){
     totalCards++;
     bandSpend[card._budgetBand]+=card.rawNM;
   };
+  const removeOne=(entry)=>{
+    const key=keyOf(entry);
+    const ex=alloc.get(key);
+    if(!ex)return false;
+    ex.qty--;
+    ex.cost-=entry.rawNM;
+    remaining+=entry.rawNM;
+    totalSpent-=entry.rawNM;
+    totalCards--;
+    bandSpend[entry._budgetBand]-=entry.rawNM;
+    if(ex.qty<=0)alloc.delete(key);
+    return true;
+  };
   const pickBest=(remainingSlots)=>{
     let best=null,bestScore=-Infinity;
+    const ideal=targetIdealPrice();
     for(const card of pool){
       if(card.rawNM>remaining)continue;
       if(remainingSlots>0&&remaining-card.rawNM<cheapest*remainingSlots)continue;
       const score=marginalScore(card);
-      if(score>bestScore||(score===bestScore&&card.rawNM<(best?.rawNM??Infinity))){best=card;bestScore=score}
+      if(score>bestScore){best=card;bestScore=score;continue}
+      if(score===bestScore&&best){
+        if(desired){
+          const d1=Math.abs(card.rawNM-ideal),d2=Math.abs(best.rawNM-ideal);
+          if(d1<d2){best=card;bestScore=score}
+        }else if(card.rawNM<(best.rawNM??Infinity)){best=card;bestScore=score}
+      }
     }
     return best;
   };
@@ -686,6 +772,34 @@ function buildBudgetPlan(viable,budget,targetRequested){
       const pick=pickBest(desired-slot-1);
       if(!pick)break;
       addOne(pick);
+    }
+
+    // Target-aware upgrade pass: once the requested card count is met, keep the count fixed
+    // and swap lower-cost units into higher-cost units when that uses more of the budget
+    // without requiring a hard per-card quantity limit.
+    let guard=0;
+    while(remaining>=0.01&&guard<1000&&totalCards===desired){
+      let bestSwap=null,bestScore=0;
+      const currentEntries=[...alloc.values()].filter(x=>x.qty>0);
+      for(const from of currentEntries){
+        for(const to of pool){
+          const diff=to.rawNM-from.rawNM;
+          if(diff<=0.01||diff>remaining+0.0001)continue;
+          const toQty=getQty(to);
+          const fromQty=Math.max(0,(alloc.get(keyOf(from))?.qty||0)-1);
+          const toDupPenalty=Math.log1p(toQty)*7;
+          const fromKeepPenalty=Math.log1p(fromQty)*7;
+          const scoreDelta=((to._budgetBaseScore||0)-(from._budgetBaseScore||0))*.25;
+          const spendGainScore=(diff/Math.max(1,maxPrice))*45;
+          const varietyScore=(keyOf(to)===keyOf(from)?0:(toQty===0?4:0));
+          const concentrationScore=from.qty>1?Math.min(5,Math.log1p(from.qty)*2):0;
+          const swapScore=spendGainScore+scoreDelta+varietyScore+concentrationScore-toDupPenalty+fromKeepPenalty;
+          if(swapScore>bestScore){bestScore=swapScore;bestSwap={from,to,diff}}
+        }
+      }
+      if(!bestSwap)break;
+      if(removeOne(bestSwap.from))addOne(bestSwap.to);
+      guard++;
     }
   }else{
     let guard=0;
