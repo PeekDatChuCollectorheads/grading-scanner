@@ -603,47 +603,107 @@ function budgetSummaryBox(plan,label){
     +'<div class="bsr"><span class="bsl">Remaining</span><span class="bsv">$'+(plan.budget-plan.totalSpent).toFixed(0)+'</span></div>'
     +'<div class="bsr"><span class="bsl">Utilization</span><span class="bsv">'+util.toFixed(0)+'%</span></div></div>';
 }
+function confScore(v){
+  const s=String(v||'').toLowerCase();
+  if(s.includes('high'))return 100;
+  if(s.includes('medium'))return 70;
+  if(s.includes('low'))return 40;
+  return 25;
+}
+function clampNum(v,min,max){v=Number(v);if(!Number.isFinite(v))return min;return Math.max(min,Math.min(max,v))}
+function budgetPriceBand(card,minP,maxP){
+  const p=Number(card.rawNM||0);
+  if(!Number.isFinite(p)||maxP<=minP)return 0;
+  const idx=Math.floor(((p-minP)/(maxP-minP))*4);
+  return Math.max(0,Math.min(3,idx));
+}
 function buildBudgetPlan(viable,budget,targetRequested){
-  const sorted=[...viable].sort((a,b)=>{if((b.bestSpread??0)!==(a.bestSpread??0))return (b.bestSpread??0)-(a.bestSpread??0);return (a.rawNM??1e9)-(b.rawNM??1e9)});
+  const pool=[...viable].filter(c=>Number.isFinite(c.rawNM)&&c.rawNM>0);
   const alloc=new Map();
+  const bandSpend=[0,0,0,0];
   let remaining=budget;
-  const addOne=(card)=>{
-    const key=card.name+'|'+card.cardNumber+'|'+card.setName;
-    const ex=alloc.get(key);
-    if(ex){ex.qty++;ex.cost+=card.rawNM}
-    else alloc.set(key,{...card,qty:1,cost:card.rawNM});
-    remaining-=card.rawNM;
-  };
-  if(!sorted.length)return{budget,totalSpent:0,totalCards:0,list:[],targetRequested:targetRequested||null,targetAchievedTarget:0};
-  const cheapest=Math.min(...sorted.map(c=>c.rawNM).filter(v=>Number.isFinite(v)&&v>0));
+  let totalSpent=0;
+  let totalCards=0;
+  if(!pool.length)return{budget,totalSpent:0,totalCards:0,list:[],targetRequested:targetRequested||null,targetAchievedTarget:0};
+
+  const prices=pool.map(c=>c.rawNM).filter(v=>Number.isFinite(v)&&v>0);
+  const minPrice=Math.min(...prices),maxPrice=Math.max(...prices);
+  const cheapest=Math.min(...prices);
   const maxAffordable=Number.isFinite(cheapest)&&cheapest>0?Math.floor(budget/cheapest):0;
   const desired=targetRequested?Math.min(targetRequested,maxAffordable):null;
+  const maxProfit=Math.max(1,...pool.map(c=>Number(c.bestProfit||0)).filter(v=>Number.isFinite(v)&&v>0));
+
+  pool.forEach(c=>{
+    const spreadPct=Number(c.bestSpread||0);
+    const profit=Number(c.bestProfit||0);
+    const sales=Number(c.bestSales||0);
+    const spreadScore=clampNum(spreadPct,0,300)/300*100;
+    const profitScore=clampNum(profit,0,maxProfit)/maxProfit*100;
+    const salesScore=clampNum(Math.log1p(Math.max(0,sales))/Math.log1p(20),0,1)*100;
+    const confidenceScore=confScore(c.bestConf);
+    c._budgetBand=budgetPriceBand(c,minPrice,maxPrice);
+    c._budgetBaseScore=(spreadScore*.35)+(profitScore*.35)+(salesScore*.15)+(confidenceScore*.15);
+  });
+
+  const keyOf=(card)=>card.name+'|'+card.cardNumber+'|'+card.setName;
+  const getQty=(card)=>alloc.get(keyOf(card))?.qty||0;
+  const bandBonus=(card)=>{
+    if(totalSpent<=0)return 0;
+    const share=bandSpend[card._budgetBand]/totalSpent;
+    const gap=Math.max(0,0.25-share);
+    return Math.min(6,gap/0.25*6);
+  };
+  const marginalScore=(card)=>{
+    const qty=getQty(card);
+    const duplicatePenalty=Math.log1p(qty)*8;
+    const utilizationPenalty=card.rawNM>remaining?9999:0;
+    return card._budgetBaseScore+bandBonus(card)-duplicatePenalty-utilizationPenalty;
+  };
+  const addOne=(card)=>{
+    const key=keyOf(card);
+    const ex=alloc.get(key);
+    const score=marginalScore(card);
+    if(ex){ex.qty++;ex.cost+=card.rawNM;ex._lastMarginalScore=score}
+    else alloc.set(key,{...card,qty:1,cost:card.rawNM,_lastMarginalScore:score});
+    remaining-=card.rawNM;
+    totalSpent+=card.rawNM;
+    totalCards++;
+    bandSpend[card._budgetBand]+=card.rawNM;
+  };
+  const pickBest=(remainingSlots)=>{
+    let best=null,bestScore=-Infinity;
+    for(const card of pool){
+      if(card.rawNM>remaining)continue;
+      if(remainingSlots>0&&remaining-card.rawNM<cheapest*remainingSlots)continue;
+      const score=marginalScore(card);
+      if(score>bestScore||(score===bestScore&&card.rawNM<(best?.rawNM??Infinity))){best=card;bestScore=score}
+    }
+    return best;
+  };
 
   if(desired&&desired>0){
     for(let slot=0;slot<desired;slot++){
-      const remainingSlots=desired-slot-1;
-      let pick=null;
-      for(const card of sorted){
-        if(card.rawNM>remaining)continue;
-        if(remaining-card.rawNM >= cheapest*remainingSlots){pick=card;break}
-      }
+      const pick=pickBest(desired-slot-1);
       if(!pick)break;
       addOne(pick);
     }
   }else{
     let guard=0;
     while(guard<5000){
-      let pick=null;
-      for(const card of sorted){if(card.rawNM<=remaining){pick=card;break}}
+      const pick=pickBest(0);
       if(!pick)break;
       addOne(pick);
       guard++;
     }
   }
 
-  const list=[...alloc.values()].sort((a,b)=>{const bs=(b.bestSpread??0)-(a.bestSpread??0);if(bs!==0)return bs;return b.qty-a.qty});
-  const totalSpent=list.reduce((s,c)=>s+c.cost,0);
-  const totalCards=list.reduce((s,c)=>s+c.qty,0);
+  const list=[...alloc.values()].sort((a,b)=>{
+    const sc=(b._budgetBaseScore??0)-(a._budgetBaseScore??0);
+    if(sc!==0)return sc;
+    const p=(b.bestProfit??0)-(a.bestProfit??0);
+    if(p!==0)return p;
+    return b.qty-a.qty;
+  });
   return{budget,totalSpent,totalCards,list,targetRequested:targetRequested||null,targetAchievedTarget:desired||0};
 }
 function renderBudgetPlan(plan,gk,label){
@@ -686,7 +746,13 @@ async function runBudget(){
         const pct=gk==='psa'?c.psaPct:c.cgcPct;
         const graded=gk==='psa'?c.psa10:c.cgc10;
         return graded!=null && pct!=null && pct>0;
-      }).map(c=>({...c,bestSpread:gk==='psa'?c.psaPct:c.cgcPct}));
+      }).map(c=>{
+        const pct=gk==='psa'?c.psaPct:c.cgcPct;
+        const profit=gk==='psa'?c.psaSpread:c.cgcSpread;
+        const sales=gk==='psa'?c.psaSales:c.cgcSales;
+        const conf=gk==='psa'?c.psaConf:c.cgcConf;
+        return {...c,bestSpread:pct,bestProfit:profit,bestSales:sales,bestConf:conf};
+      });
     };
 
     const failed=raw.filter(c=>c.rawNM==null).length;
